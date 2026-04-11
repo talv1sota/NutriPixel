@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Food {
+  id       Int       @id @default(autoincrement())
+  name     String
+  brand    String?
+  calories Float     // per 100g
+  protein  Float     // per 100g
+  carbs    Float     // per 100g
+  fat      Float     // per 100g
+  fiber    Float     @default(0) // per 100g
+  sugar    Float     @default(0) // per 100g
+  serving  Float     @default(100) // default serving size in grams
+  unit     String    @default("g")
+  logs     FoodLog[]
+}
+
+model FoodLog {
+  id        Int      @id @default(autoincrement())
+  foodId    Int
+  food      Food     @relation(fields: [foodId], references: [id])
+  amount    Float    // in grams
+  meal      String   // breakfast, lunch, dinner, snack
+  date      String   // YYYY-MM-DD
+  createdAt DateTime @default(now())
+}
+
+model WeightEntry {
+  id        Int      @id @default(autoincrement())
+  weight    Float    // in lbs or kg based on user pref
+  date      String   @unique // YYYY-MM-DD
+  createdAt DateTime @default(now())
+}
+
+model Goal {
+  id             Int     @id @default(autoincrement())
+  goalType       String  @default("lose") // lose, maintain, gain
+  targetWeight   Float?
+  targetDate     String? // YYYY-MM-DD deadline for weight goal
+  targetCalories Float?
+  targetProtein  Float?
+  targetCarbs    Float?
+  targetFat      Float?
+  minCarbs       Float?
+  minFat         Float?
+  minProtein     Float?
+  proteinMode    String  @default("minimum") // minimum or range
+  carbsMode      String  @default("range")   // minimum or range
+  fatMode        String  @default("range")   // minimum or range
+  unit           String  @default("lbs") // lbs or kg
+  height         Float?  // in inches or cm
+  heightUnit     String  @default("in") // in or cm
+  gender         String  @default("female") // male, female
+  age            Int?
+  activityLevel  String  @default("sedentary") // sedentary, light, moderate, active, very_active
+}
+
+model Exercise {
+  id             Int      @id @default(autoincrement())
+  name           String
+  caloriesBurned Float
+  duration       Int      // minutes
+  date           String   // YYYY-MM-DD
+  createdAt      DateTime @default(now())
+}
+
+model Recipe {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String?
+  sourceUrl    String?
+  image        String?
+  servings     String?  // free-form, e.g. "4 servings"
+  prepTime     String?  // e.g. "10 min"
+  cookTime     String?  // e.g. "20 min"
+  totalTime    String?
+  ingredients  String   // newline-separated
+  instructions String   // newline-separated
+  calories     Float?   // per serving
+  protein      Float?
+  carbs        Float?
+  fat          Float?
+  fiber        Float?
+  sugar        Float?
+  createdAt    DateTime @default(now())
+}
+
+model MoodEntry {
+  id        Int      @id @default(autoincrement())
+  date      String   @unique // YYYY-MM-DD
+  tags      String   @default("") // comma-separated tags
+  notes     String?
+  createdAt DateTime @default(now())
+}
