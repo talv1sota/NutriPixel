@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import MoodTracker from "@/components/MoodTracker";
 import { todayStr, formatDate } from "@/lib/helpers";
 
@@ -15,9 +15,13 @@ export default function MoodPage() {
   const [date, setDate] = useState(todayStr());
   const [history, setHistory] = useState<MoodEntry[]>([]);
 
-  useEffect(() => {
+  const refreshHistory = useCallback(() => {
     fetch("/api/mood").then(r => r.json()).then(setHistory);
-  }, [date]);
+  }, []);
+
+  useEffect(() => {
+    refreshHistory();
+  }, [refreshHistory]);
 
   const changeDate = (d: number) => {
     const dt = new Date(date + "T12:00:00");
@@ -35,7 +39,7 @@ export default function MoodPage() {
         <button onClick={() => changeDate(1)} className="btn-blue btn-sm">Next ▶</button>
       </div>
 
-      <MoodTracker date={date} />
+      <MoodTracker date={date} onSave={refreshHistory} />
 
       {history.length > 0 && (
         <div className="window slidein">

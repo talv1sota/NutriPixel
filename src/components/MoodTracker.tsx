@@ -5,6 +5,7 @@ import Window from "./Window";
 
 interface MoodTrackerProps {
   date: string;
+  onSave?: () => void;
 }
 
 interface MoodEntry {
@@ -37,9 +38,10 @@ const MOOD_TAGS = [
   { label: "PMS", emoji: "🩸", color: "#ff6b8a" },
   { label: "cramps", emoji: "💢", color: "#ff85a2" },
   { label: "headache", emoji: "🤕", color: "#c5b5e0" },
+  { label: "bm", emoji: "💩", color: "#c4a882" },
 ];
 
-export default function MoodTracker({ date }: MoodTrackerProps) {
+export default function MoodTracker({ date, onSave }: MoodTrackerProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState("");
   const [saved, setSaved] = useState(false);
@@ -82,6 +84,7 @@ export default function MoodTracker({ date }: MoodTrackerProps) {
     });
     setHasEntry(true);
     setSaved(true);
+    onSave?.();
     setTimeout(() => setSaved(false), 1500);
   };
 
