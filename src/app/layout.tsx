@@ -6,8 +6,8 @@ import Stars from "@/components/Stars";
 import { getSession } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "✧ NutriPixel ✧ Y2K Food Tracker",
-  description: "Track your nutrition with cyber pop vibes",
+  title: "NutriPixel",
+  description: "Food and fitness tracker",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
