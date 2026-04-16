@@ -6,7 +6,7 @@ import Stars from "@/components/Stars";
 import { getSession } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "NutriPixel",
+  title: "Intake Tracker",
   description: "Food and fitness tracker",
 };
 

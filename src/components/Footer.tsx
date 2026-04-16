@@ -20,7 +20,7 @@ export default function Footer() {
             <span style={{ color: "#ffc145" }}>✦</span>
             <span style={{ color: "#5bb8e8" }}>˚</span>
             <span style={{ color: "#e84d98" }}>✧</span>
-            &nbsp;✧ NutriPixel v2.0 ✧&nbsp;
+            &nbsp;✧ NutriTracker ✧&nbsp;
             <span style={{ color: "#e84d98" }}>✧</span>
             <span style={{ color: "#5bb8e8" }}>˚</span>
             <span style={{ color: "#ffc145" }}>✦</span>

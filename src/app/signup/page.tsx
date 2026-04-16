@@ -43,7 +43,7 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="window slidein" style={{ maxWidth: 400, width: "100%" }}>
         <div className="window-title">
-          <span>✧ Join NutriPixel ✧</span>
+          <span>✧ Join NutriTracker ✧</span>
           <div className="decorations">
             <div className="dot dot-red" />
             <div className="dot dot-yellow" />

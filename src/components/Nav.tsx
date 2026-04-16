@@ -35,7 +35,7 @@ export default function Nav() {
               <div className="dot dot-yellow" />
               <div className="dot dot-green" />
             </div>
-            <span>NutriPixel v2.0</span>
+            <span>NutriTracker</span>
           </div>
           <button
             onClick={handleLogout}
