@@ -3,8 +3,15 @@ import { PrismaNeonHTTP } from "@prisma/adapter-neon";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
+function neonUrl() {
+  const url = new URL(process.env.DATABASE_URL!);
+  url.searchParams.delete("channel_binding");
+  url.searchParams.delete("sslmode");
+  return url.toString();
+}
+
 function createPrismaClient() {
-  const adapter = new PrismaNeonHTTP(process.env.DATABASE_URL!, {});
+  const adapter = new PrismaNeonHTTP(neonUrl(), {});
   return new PrismaClient({ adapter });
 }
 
