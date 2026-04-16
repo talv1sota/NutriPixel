@@ -7,6 +7,7 @@ import Link from "next/link";
 export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -25,7 +26,7 @@ export default function SignupPage() {
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, inviteCode }),
     });
 
     if (!res.ok) {
@@ -60,6 +61,17 @@ export default function SignupPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 className="input w-full"
                 placeholder="username"
+                required
+              />
+            </div>
+            <div>
+              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Invite Code</label>
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                className="input w-full"
+                placeholder="invite code"
                 required
               />
             </div>

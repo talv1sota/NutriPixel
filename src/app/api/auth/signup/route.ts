@@ -14,9 +14,14 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const username = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
+  const inviteCode = typeof body.inviteCode === "string" ? body.inviteCode.trim() : "";
 
   if (!username || !password) {
     return NextResponse.json({ error: "Username and password required" }, { status: 400 });
+  }
+
+  if (inviteCode !== process.env.INVITE_CODE) {
+    return NextResponse.json({ error: "Invalid invite code" }, { status: 403 });
   }
 
   if (password.length < 8) {
