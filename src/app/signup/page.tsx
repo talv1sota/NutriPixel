@@ -65,17 +65,6 @@ export default function SignupPage() {
               />
             </div>
             <div>
-              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Invite Code</label>
-              <input
-                type="text"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
-                className="input w-full"
-                placeholder="invite code"
-                required
-              />
-            </div>
-            <div>
               <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Password</label>
               <input
                 type="password"
@@ -83,6 +72,18 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="input w-full"
                 placeholder="min 8 characters"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Invite Code</label>
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                className="input w-full"
+                placeholder="invite code"
                 required
               />
             </div>
