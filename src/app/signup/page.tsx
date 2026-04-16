@@ -59,7 +59,7 @@ export default function SignupPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="input w-full"
-                placeholder="letters, numbers, underscores"
+                placeholder="username"
                 required
               />
             </div>
