@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const links = [
   { href: "/", label: "Home", icon: "🏠" },
@@ -16,6 +16,13 @@ const links = [
 
 export default function Nav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  };
 
   return (
     <div className="relative z-20">
@@ -30,7 +37,12 @@ export default function Nav() {
             </div>
             <span>NutriPixel v2.0</span>
           </div>
-          <span style={{ fontSize: "8px", opacity: 0.7 }}>✧ ur food tracker ✧</span>
+          <button
+            onClick={handleLogout}
+            style={{ fontSize: "8px", opacity: 0.7, background: "none", border: "none", color: "white", cursor: "pointer" }}
+          >
+            logout ✧
+          </button>
         </div>
 
         <div className="flex items-stretch justify-center py-3 px-4 bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50">

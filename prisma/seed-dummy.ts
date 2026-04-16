@@ -4,6 +4,16 @@ import { PrismaClient } from "../src/generated/prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  // This script requires a user to exist. Pass userId as CLI arg or default to 1.
+  const userIdArg = process.argv[2];
+  const userId = userIdArg ? parseInt(userIdArg, 10) : 1;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    console.error(`User with id ${userId} not found. Sign up first, then run: npx tsx prisma/seed-dummy.ts <userId>`);
+    process.exit(1);
+  }
+
   // Add missing foods
   const newFoods = [
     { name: "Ground Turkey", brand: "Generic", calories: 170, protein: 21, carbs: 0, fat: 9, fiber: 0, sugar: 0, serving: 454, unit: "g" },
@@ -39,6 +49,7 @@ async function main() {
 
   // Helper
   const log = (foodName: string, amount: number, meal: string, date: string) => ({
+    userId,
     foodId: createdFoods[foodName],
     amount,
     meal,

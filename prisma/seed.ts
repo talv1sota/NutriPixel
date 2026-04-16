@@ -77,18 +77,8 @@ async function main() {
     await prisma.food.create({ data: food });
   }
 
-  // Create default goals
-  await prisma.goal.create({
-    data: {
-      targetCalories: 2000,
-      targetProtein: 150,
-      targetCarbs: 250,
-      targetFat: 65,
-      unit: "lbs",
-    },
-  });
-
-  console.log(`Seeded ${foods.length} foods and default goals`);
+  console.log(`Seeded ${foods.length} foods`);
+  console.log("Note: Goals are created per-user on signup. No default goals seeded.");
 }
 
 main()

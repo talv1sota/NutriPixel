@@ -4,8 +4,22 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime      @default(now())
+  foodLogs     FoodLog[]
+  weightEntries WeightEntry[]
+  goals        Goal[]
+  exercises    Exercise[]
+  recipes      Recipe[]
+  moodEntries  MoodEntry[]
 }
 
 model Food {
@@ -25,6 +39,8 @@ model Food {
 
 model FoodLog {
   id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
   foodId    Int
   food      Food     @relation(fields: [foodId], references: [id])
   amount    Float    // in grams
@@ -35,13 +51,19 @@ model FoodLog {
 
 model WeightEntry {
   id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
   weight    Float    // in lbs or kg based on user pref
-  date      String   @unique // YYYY-MM-DD
+  date      String   // YYYY-MM-DD
   createdAt DateTime @default(now())
+
+  @@unique([userId, date])
 }
 
 model Goal {
   id             Int     @id @default(autoincrement())
+  userId         Int
+  user           User    @relation(fields: [userId], references: [id])
   goalType       String  @default("lose") // lose, maintain, gain
   targetWeight   Float?
   targetDate     String? // YYYY-MM-DD deadline for weight goal
@@ -65,6 +87,8 @@ model Goal {
 
 model Exercise {
   id             Int      @id @default(autoincrement())
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id])
   name           String
   caloriesBurned Float
   duration       Int      // minutes
@@ -74,6 +98,8 @@ model Exercise {
 
 model Recipe {
   id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
   title        String
   description  String?
   sourceUrl    String?
@@ -95,8 +121,12 @@ model Recipe {
 
 model MoodEntry {
   id        Int      @id @default(autoincrement())
-  date      String   @unique // YYYY-MM-DD
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  date      String   // YYYY-MM-DD
   tags      String   @default("") // comma-separated tags
   notes     String?
   createdAt DateTime @default(now())
+
+  @@unique([userId, date])
 }

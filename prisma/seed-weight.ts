@@ -4,6 +4,15 @@ import { PrismaClient } from "../src/generated/prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  const userIdArg = process.argv[2];
+  const userId = userIdArg ? parseInt(userIdArg, 10) : 1;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    console.error(`User with id ${userId} not found. Sign up first, then run: npx tsx prisma/seed-weight.ts <userId>`);
+    process.exit(1);
+  }
+
   // Weight entries
   const entries = [
     { weight: 136, date: "2026-04-06" },
@@ -14,14 +23,14 @@ async function main() {
 
   for (const e of entries) {
     await prisma.weightEntry.upsert({
-      where: { date: e.date },
+      where: { userId_date: { userId, date: e.date } },
       update: { weight: e.weight },
-      create: e,
+      create: { userId, ...e },
     });
   }
 
   // Set goal weight to 125
-  const goal = await prisma.goal.findFirst();
+  const goal = await prisma.goal.findFirst({ where: { userId } });
   if (goal) {
     await prisma.goal.update({
       where: { id: goal.id },

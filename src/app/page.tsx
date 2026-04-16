@@ -23,7 +23,7 @@ interface Mood {
 interface Goal {
   targetCalories: number | null; targetProtein: number | null;
   targetCarbs: number | null; targetFat: number | null;
-  minCarbs: number | null; minFat: number | null;
+  minProtein: number | null; minCarbs: number | null; minFat: number | null;
   height: number | null; gender: string; age: number | null;
   activityLevel: string; unit: string; targetWeight: number | null;
 }

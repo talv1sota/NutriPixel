@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 function dateNDaysAgo(n: number) {
@@ -37,17 +38,17 @@ interface DailyTotals {
   hasLogs: boolean;
 }
 
-async function computeWindow(days: number, tdee: number | null, targetCalories: number | null, targetProtein: number | null) {
+async function computeWindow(userId: number, days: number, tdee: number | null, targetCalories: number | null, targetProtein: number | null) {
   const from = dateNDaysAgo(days - 1);
   const to = todayStr();
 
   const [logs, exercises] = await Promise.all([
     prisma.foodLog.findMany({
-      where: { date: { gte: from, lte: to } },
+      where: { userId, date: { gte: from, lte: to } },
       include: { food: true },
     }),
     prisma.exercise.findMany({
-      where: { date: { gte: from, lte: to } },
+      where: { userId, date: { gte: from, lte: to } },
     }),
   ]);
 
@@ -140,8 +141,11 @@ async function computeWindow(days: number, tdee: number | null, targetCalories: 
 }
 
 export async function GET() {
-  const goal = await prisma.goal.findFirst();
-  const weights = await prisma.weightEntry.findMany({ orderBy: { date: "asc" } });
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const goal = await prisma.goal.findFirst({ where: { userId: session.userId } });
+  const weights = await prisma.weightEntry.findMany({ where: { userId: session.userId }, orderBy: { date: "asc" } });
 
   const currentWeight = weights.length > 0 ? weights[weights.length - 1].weight : null;
   const tdee = (currentWeight && goal?.height && goal?.age)
@@ -149,8 +153,8 @@ export async function GET() {
     : null;
 
   const [week, month] = await Promise.all([
-    computeWindow(7, tdee, goal?.targetCalories ?? null, goal?.minProtein ?? goal?.targetProtein ?? null),
-    computeWindow(30, tdee, goal?.targetCalories ?? null, goal?.minProtein ?? goal?.targetProtein ?? null),
+    computeWindow(session.userId, 7, tdee, goal?.targetCalories ?? null, goal?.minProtein ?? goal?.targetProtein ?? null),
+    computeWindow(session.userId, 30, tdee, goal?.targetCalories ?? null, goal?.minProtein ?? goal?.targetProtein ?? null),
   ]);
 
   // Weight progress
