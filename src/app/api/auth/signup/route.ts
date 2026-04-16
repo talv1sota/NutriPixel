@@ -1,9 +1,16 @@
 import { prisma } from "@/lib/db";
 import { createSession } from "@/lib/auth";
+import { rateLimit } from "@/lib/rateLimit";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const { ok } = rateLimit(`signup:${ip}`, 5, 60_000); // 5 signups per minute
+  if (!ok) {
+    return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
+  }
+
   const body = await req.json();
   const username = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
