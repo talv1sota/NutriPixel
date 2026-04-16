@@ -204,7 +204,7 @@ async function main() {
     console.error(`User with id ${userId} not found. Sign up first, then run: npx tsx prisma/migrate-data.ts <userId>`);
     process.exit(1);
   }
-  console.log(`Migrating data for user: ${user.name} (${user.email})`);
+  console.log(`Migrating data for user: ${user.username}`);
 
   console.log("Creating custom foods...");
   for (const food of customFoods) {

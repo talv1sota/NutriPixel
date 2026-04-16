@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function SignupPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,16 +22,10 @@ export default function SignupPage() {
       return;
     }
 
-    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
-      setError("Password must contain at least one letter and one number");
-      setLoading(false);
-      return;
-    }
-
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ username, password }),
     });
 
     if (!res.ok) {
@@ -60,24 +53,13 @@ export default function SignupPage() {
         <div className="window-body">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
+              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Username</label>
               <input
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="input w-full"
-                placeholder="your name"
-                required
-              />
-            </div>
-            <div>
-              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input w-full"
-                placeholder="you@email.com"
+                placeholder="letters, numbers, underscores"
                 required
               />
             </div>
@@ -88,7 +70,7 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input w-full"
-                placeholder="min 8 chars, letter + number"
+                placeholder="min 8 characters"
                 required
               />
             </div>

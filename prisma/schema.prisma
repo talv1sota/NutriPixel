@@ -1,6 +1,6 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -10,9 +10,8 @@ datasource db {
 
 model User {
   id           Int           @id @default(autoincrement())
-  email        String        @unique
+  username     String        @unique
   passwordHash String
-  name         String
   createdAt    DateTime      @default(now())
   foodLogs     FoodLog[]
   weightEntries WeightEntry[]

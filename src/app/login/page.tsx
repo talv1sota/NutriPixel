@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ export default function LoginPage() {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
     });
 
     if (!res.ok) {
@@ -47,13 +47,13 @@ export default function LoginPage() {
         <div className="window-body">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Email</label>
+              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Username</label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="input w-full"
-                placeholder="you@email.com"
+                placeholder="your username"
                 required
               />
             </div>
