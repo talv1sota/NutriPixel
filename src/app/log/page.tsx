@@ -162,6 +162,56 @@ export default function LogPage() {
         </div>
       </Window>
 
+      <div className="text-center">
+        <button onClick={() => setShowCustom(!showCustom)} className="btn-blue btn-sm">
+          {showCustom ? "cancel" : "✧ Quick Add Custom Food ✧"}
+        </button>
+      </div>
+
+      {showCustom && (
+        <Window title="✧ Custom Food">
+          <div className="space-y-3">
+            <div>
+              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
+              <input type="text" value={custom.name} onChange={e => setCustom(c => ({ ...c, name: e.target.value }))}
+                className="input w-full" placeholder="e.g. Qdoba Bowl" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Calories</label>
+                <input type="number" value={custom.calories} onChange={e => setCustom(c => ({ ...c, calories: e.target.value }))}
+                  className="input w-full" placeholder="kcal" />
+              </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Serving size (g)</label>
+                <input type="number" value={custom.serving} onChange={e => setCustom(c => ({ ...c, serving: e.target.value }))}
+                  className="input w-full" placeholder="100" />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Protein</label>
+                <input type="number" value={custom.protein} onChange={e => setCustom(c => ({ ...c, protein: e.target.value }))}
+                  className="input w-full" placeholder="g" />
+              </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Carbs</label>
+                <input type="number" value={custom.carbs} onChange={e => setCustom(c => ({ ...c, carbs: e.target.value }))}
+                  className="input w-full" placeholder="g" />
+              </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Fat</label>
+                <input type="number" value={custom.fat} onChange={e => setCustom(c => ({ ...c, fat: e.target.value }))}
+                  className="input w-full" placeholder="g" />
+              </div>
+            </div>
+            <button onClick={handleCustomLog} disabled={saving || !custom.name || !custom.calories} className="btn-pink w-full py-3">
+              {saving ? "✧ Logging... ✧" : "✧ Log Custom Food ✧"}
+            </button>
+          </div>
+        </Window>
+      )}
+
       <Window title="🔍 Search Foods & Recipes">
         <div className="relative">
           <input ref={ref} type="text" value={search} onChange={e => setSearch(e.target.value)}
@@ -287,55 +337,6 @@ export default function LogPage() {
         </div>
       )}
 
-      <div className="text-center">
-        <button onClick={() => setShowCustom(!showCustom)} className="btn-blue btn-sm">
-          {showCustom ? "cancel" : "✧ Quick Add Custom Food ✧"}
-        </button>
-      </div>
-
-      {showCustom && (
-        <Window title="✧ Custom Food">
-          <div className="space-y-3">
-            <div>
-              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
-              <input type="text" value={custom.name} onChange={e => setCustom(c => ({ ...c, name: e.target.value }))}
-                className="input w-full" placeholder="e.g. Qdoba Bowl" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Calories</label>
-                <input type="number" value={custom.calories} onChange={e => setCustom(c => ({ ...c, calories: e.target.value }))}
-                  className="input w-full" placeholder="kcal" />
-              </div>
-              <div>
-                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Serving size (g)</label>
-                <input type="number" value={custom.serving} onChange={e => setCustom(c => ({ ...c, serving: e.target.value }))}
-                  className="input w-full" placeholder="100" />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Protein</label>
-                <input type="number" value={custom.protein} onChange={e => setCustom(c => ({ ...c, protein: e.target.value }))}
-                  className="input w-full" placeholder="g" />
-              </div>
-              <div>
-                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Carbs</label>
-                <input type="number" value={custom.carbs} onChange={e => setCustom(c => ({ ...c, carbs: e.target.value }))}
-                  className="input w-full" placeholder="g" />
-              </div>
-              <div>
-                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Fat</label>
-                <input type="number" value={custom.fat} onChange={e => setCustom(c => ({ ...c, fat: e.target.value }))}
-                  className="input w-full" placeholder="g" />
-              </div>
-            </div>
-            <button onClick={handleCustomLog} disabled={saving || !custom.name || !custom.calories} className="btn-pink w-full py-3">
-              {saving ? "✧ Logging... ✧" : "✧ Log Custom Food ✧"}
-            </button>
-          </div>
-        </Window>
-      )}
     </div>
   );
 }
