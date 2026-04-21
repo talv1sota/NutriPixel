@@ -32,6 +32,8 @@ export default function LogPage() {
   const [date, setDate] = useState(todayStr());
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState("");
+  const [showCustom, setShowCustom] = useState(false);
+  const [custom, setCustom] = useState({ name: "", calories: "", protein: "", carbs: "", fat: "", serving: "" });
   const ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -105,6 +107,35 @@ export default function LogPage() {
     setServings("1");
     setTimeout(() => setFlash(""), 2500);
     ref.current?.focus();
+  };
+
+  const handleCustomLog = async () => {
+    if (!custom.name || !custom.calories) return;
+    setSaving(true);
+    const res = await fetch("/api/foods", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: custom.name,
+        calories: parseFloat(custom.calories) * 100 / (parseFloat(custom.serving) || 100),
+        protein: (parseFloat(custom.protein) || 0) * 100 / (parseFloat(custom.serving) || 100),
+        carbs: (parseFloat(custom.carbs) || 0) * 100 / (parseFloat(custom.serving) || 100),
+        fat: (parseFloat(custom.fat) || 0) * 100 / (parseFloat(custom.serving) || 100),
+        serving: parseFloat(custom.serving) || 100,
+      }),
+    });
+    const food = await res.json();
+    await fetch("/api/logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ foodId: food.id, amount: parseFloat(custom.serving) || 100, meal, date }),
+    });
+    setFlash(`Logged ${custom.name}!`);
+    setCustom({ name: "", calories: "", protein: "", carbs: "", fat: "", serving: "" });
+    setShowCustom(false);
+    setSaving(false);
+    setFoods(prev => [...prev, food]);
+    setTimeout(() => setFlash(""), 2500);
   };
 
   return (
@@ -254,6 +285,56 @@ export default function LogPage() {
           <p className="vt-text">search for a food above to get started ~*</p>
           <p className="pixel-label mt-2" style={{ fontSize: "8px" }}>{foods.length} foods in database ✦</p>
         </div>
+      )}
+
+      <div className="text-center">
+        <button onClick={() => setShowCustom(!showCustom)} className="btn-blue btn-sm">
+          {showCustom ? "cancel" : "✧ Quick Add Custom Food ✧"}
+        </button>
+      </div>
+
+      {showCustom && (
+        <Window title="✧ Custom Food">
+          <div className="space-y-3">
+            <div>
+              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
+              <input type="text" value={custom.name} onChange={e => setCustom(c => ({ ...c, name: e.target.value }))}
+                className="input w-full" placeholder="e.g. Qdoba Bowl" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Calories</label>
+                <input type="number" value={custom.calories} onChange={e => setCustom(c => ({ ...c, calories: e.target.value }))}
+                  className="input w-full" placeholder="kcal" />
+              </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Serving size (g)</label>
+                <input type="number" value={custom.serving} onChange={e => setCustom(c => ({ ...c, serving: e.target.value }))}
+                  className="input w-full" placeholder="100" />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Protein</label>
+                <input type="number" value={custom.protein} onChange={e => setCustom(c => ({ ...c, protein: e.target.value }))}
+                  className="input w-full" placeholder="g" />
+              </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Carbs</label>
+                <input type="number" value={custom.carbs} onChange={e => setCustom(c => ({ ...c, carbs: e.target.value }))}
+                  className="input w-full" placeholder="g" />
+              </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Fat</label>
+                <input type="number" value={custom.fat} onChange={e => setCustom(c => ({ ...c, fat: e.target.value }))}
+                  className="input w-full" placeholder="g" />
+              </div>
+            </div>
+            <button onClick={handleCustomLog} disabled={saving || !custom.name || !custom.calories} className="btn-pink w-full py-3">
+              {saving ? "✧ Logging... ✧" : "✧ Log Custom Food ✧"}
+            </button>
+          </div>
+        </Window>
       )}
     </div>
   );
