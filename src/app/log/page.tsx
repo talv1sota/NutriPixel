@@ -280,13 +280,6 @@ export default function LogPage() {
         </Window>
       )}
 
-      {!selected && !search && (
-        <div className="text-center py-6">
-          <p className="vt-text">search for a food above to get started ~*</p>
-          <p className="pixel-label mt-2" style={{ fontSize: "8px" }}>{foods.length} foods in database ✦</p>
-        </div>
-      )}
-
       <div className="text-center">
         <button onClick={() => setShowCustom(!showCustom)} className="btn-blue btn-sm">
           {showCustom ? "cancel" : "✧ Quick Add Custom Food ✧"}
@@ -337,6 +330,10 @@ export default function LogPage() {
         </Window>
       )}
 
+      <div className="text-center py-6">
+        <p className="vt-text">search for a food above to get started ~*</p>
+        <p className="pixel-label mt-2" style={{ fontSize: "8px" }}>{foods.length} foods in database ✦</p>
+      </div>
     </div>
   );
 }
