@@ -91,6 +91,7 @@ export async function GET() {
   }
 
   // ============ OVERALL PROGRESS ============
+  insights.push("##Progress");
   if (weights.length >= 2) {
     const total = Math.round((weights[0].weight - weights[weights.length - 1].weight) * 10) / 10;
     const totalDays = Math.round((new Date(weights[weights.length - 1].date).getTime() - new Date(weights[0].date).getTime()) / (1000 * 60 * 60 * 24));
@@ -105,6 +106,7 @@ export async function GET() {
   }
 
   // ============ WEIGHT TREND (RECENT) ============
+  insights.push("##Weight");
   const recentWeights = weights.filter(w => w.date >= weekFrom);
   const twoWeekWeights = weights.filter(w => w.date >= dateNDaysAgo(13));
   if (twoWeekWeights.length >= 2) {
@@ -138,11 +140,26 @@ export async function GET() {
       }
       insights.push(reason);
     } else if (diff < -0.5) {
-      insights.push(`Down ${Math.abs(diff)} lbs in the past ${daySpan} days. The deficit is working. Make sure you're eating enough protein to preserve muscle — losing too fast without adequate protein means some of that loss is lean mass.`);
+      // Check if the drop is plausible as fat loss or mostly water
+      const periodDays = allDays.filter(d => d.date >= first.date && d.date <= last.date);
+      const avgNetPeriod = periodDays.length > 0 ? periodDays.reduce((s, d) => s + d.net, 0) / periodDays.length : 900;
+      // Rough TDEE estimate
+      const cw = last.weight;
+      const estTdee = cw * 12; // rough sedentary estimate
+      const dailyDeficit = estTdee - avgNetPeriod;
+      const expectedFatLoss = Math.round((dailyDeficit * daySpan / 3500) * 10) / 10;
+
+      if (Math.abs(diff) > expectedFatLoss * 2 && Math.abs(diff) > 1.5) {
+        // Drop is way bigger than deficit explains — it's mostly water
+        insights.push(`Down ${Math.abs(diff)} lbs in ${daySpan} days. Your calorie deficit only accounts for ~${expectedFatLoss} lbs of that, so a good chunk is water weight coming off (maybe from lower carb/sodium days recently, or post-period water release). The fat loss underneath is real — the water drop just makes the scale look more dramatic than it is. Don't expect this rate to continue linearly.`);
+      } else {
+        insights.push(`Down ${Math.abs(diff)} lbs in ${daySpan} days — this lines up well with your deficit. Steady, real progress.`);
+      }
     }
   }
 
   // ============ EATING PATTERNS ============
+  insights.push("##Eating Patterns");
   if (weekDays.length >= 3) {
     // Detect feast/famine cycling
     const sorted = [...weekDays].sort((a, b) => a.net - b.net);
@@ -174,6 +191,7 @@ export async function GET() {
   }
 
   // ============ MACRO DEEP DIVE ============
+  insights.push("##Macros");
   const days7 = weekDays.length > 0 ? weekDays : allDays.slice(-7);
   if (days7.length > 0) {
     const avgP = Math.round(days7.reduce((s, d) => s + d.protein, 0) / days7.length);
@@ -212,37 +230,74 @@ export async function GET() {
   }
 
   // ============ FOOD-LEVEL INSIGHTS ============
-  const foodCals = new Map<string, { total: number; count: number; avgPer: number }>();
-  for (const d of allDays) {
-    for (const f of d.topFoods) {
-      const cur = foodCals.get(f.name) || { total: 0, count: 0, avgPer: 0 };
-      cur.total += f.calories;
-      cur.count += 1;
-      foodCals.set(f.name, cur);
-    }
+  insights.push("##Foods");
+  // Build per-food stats with protein info
+  const foodStats = new Map<string, { totalCal: number; totalProtein: number; count: number }>();
+  for (const log of logs) {
+    const cal = log.food.calories * log.amount / 100;
+    const pro = log.food.protein * log.amount / 100;
+    const cur = foodStats.get(log.food.name) || { totalCal: 0, totalProtein: 0, count: 0 };
+    cur.totalCal += cal;
+    cur.totalProtein += pro;
+    cur.count += 1;
+    foodStats.set(log.food.name, cur);
   }
-  for (const [, v] of foodCals) v.avgPer = Math.round(v.total / v.count);
 
-  // Find calorie-dense frequent items
-  const calorieHeavy = [...foodCals.entries()]
-    .filter(([, v]) => v.avgPer > 300 && v.count >= 2)
-    .sort((a, b) => b[1].total - a[1].total)
+  // Separate foods by protein efficiency: cal per gram of protein
+  // < 10 cal/g protein = great (lean turkey, chicken, egg whites, tuna)
+  // > 25 cal/g protein or low protein = calorie-dense, low-protein
+  const calorieSinks = [...foodStats.entries()]
+    .filter(([, v]) => {
+      const avgCal = v.totalCal / v.count;
+      const avgPro = v.totalProtein / v.count;
+      const calPerProtein = avgPro > 1 ? avgCal / avgPro : 999;
+      return avgCal > 200 && calPerProtein > 20 && v.count >= 2;
+    })
+    .sort((a, b) => b[1].totalCal - a[1].totalCal)
     .slice(0, 3);
 
-  if (calorieHeavy.length > 0) {
-    const items = calorieHeavy.map(([name, v]) => `${name} (~${v.avgPer} kcal each, ${v.count} times)`).join("; ");
-    insights.push(`Your highest-impact recurring foods: ${items}. These aren't "bad" foods — but they're where your calories concentrate. Reducing portion size by 20% on these items alone could save 200-400 kcal/week without changing what you eat.`);
+  const proteinMVPs = [...foodStats.entries()]
+    .filter(([, v]) => {
+      const avgPro = v.totalProtein / v.count;
+      const avgCal = v.totalCal / v.count;
+      return avgPro > 15 && avgCal > 0 && (avgCal / avgPro) < 12 && v.count >= 2;
+    })
+    .sort((a, b) => b[1].totalProtein - a[1].totalProtein)
+    .slice(0, 3);
+
+  if (proteinMVPs.length > 0) {
+    const items = proteinMVPs.map(([name, v]) => {
+      const avgP = Math.round(v.totalProtein / v.count);
+      const avgC = Math.round(v.totalCal / v.count);
+      return `${name} (${avgP}g protein / ${avgC} kcal)`;
+    }).join("; ");
+    insights.push(`Your best protein-per-calorie foods: ${items}. These are your MVPs — lean, high-protein, and efficient. Build meals around these.`);
+  }
+
+  if (calorieSinks.length > 0) {
+    const items = calorieSinks.map(([name, v]) => {
+      const avg = Math.round(v.totalCal / v.count);
+      return `${name} (~${avg} kcal, ${v.count}x)`;
+    }).join("; ");
+    insights.push(`Calorie-dense, low-protein recurring items: ${items}. These contribute the most calories relative to their nutritional value. Swapping or reducing portions here has the biggest impact without sacrificing protein.`);
   }
 
   // Zero-calorie drink patterns (positive reinforcement)
-  const zeroDrinks = [...foodCals.entries()].filter(([name]) =>
-    name.toLowerCase().includes("zero") || name.toLowerCase().includes("unsweetened") || name.toLowerCase().includes("tea") || name.toLowerCase().includes("espresso")
-  );
+  // Only match items that are actually beverages with very low calories per serving
+  const zeroDrinks = [...foodStats.entries()].filter(([name, v]) => {
+    const avgCal = v.totalCal / v.count;
+    const lc = name.toLowerCase();
+    const isDrink = lc.includes("sprite") || lc.includes("diet") || lc.includes("iced tea") ||
+      lc.includes("espresso") || lc.includes("coffee") || lc.includes("yerba") ||
+      lc.includes("green tea") || lc.includes("water");
+    return isDrink && avgCal < 25;
+  });
   if (zeroDrinks.length > 0) {
-    insights.push(`Good habit: you're reaching for low/zero-calorie drinks (${zeroDrinks.map(([n]) => n).join(", ")}). This is an underrated strategy — liquid calories are the easiest to cut without feeling it.`);
+    insights.push(`Good habit: reaching for low/zero-calorie drinks (${zeroDrinks.map(([n]) => n).join(", ")}). Liquid calories are the easiest to cut without feeling it.`);
   }
 
   // ============ EXERCISE PATTERNS ============
+  insights.push("##Exercise");
   const exDays = allDays.filter(d => d.burned > 0);
   const noExWeek = weekDays.filter(d => d.burned > 0).length === 0;
   if (noExWeek && exDays.length > 0) {
@@ -257,6 +312,7 @@ export async function GET() {
   }
 
   // ============ PROJECTION / TRAJECTORY ============
+  insights.push("##Trajectory");
   const currentWeight = weights.length > 0 ? weights[weights.length - 1].weight : null;
   if (currentWeight && weekDays.length >= 3 && goal) {
     const weekAvgNet = Math.round(weekDays.reduce((s, d) => s + d.net, 0) / weekDays.length);
