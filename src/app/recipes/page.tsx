@@ -371,14 +371,7 @@ function RecipeModal({ recipe: initialRecipe, onClose, onUpdate }: { recipe: Rec
         }}
       >
         <div className="window-title" style={{ flexShrink: 0 }}>
-          <div className="flex items-center gap-2">
-            <span>{editing ? "📝" : "📖"} {recipe.title}</span>
-            {!editing && (
-              <button onClick={() => setEditing(true)} style={{ fontSize: "7px", opacity: 0.8, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 4, color: "white", cursor: "pointer", padding: "2px 6px" }}>
-                edit
-              </button>
-            )}
-          </div>
+          <span>{editing ? "📝" : "📖"} {recipe.title}</span>
           <button onClick={onClose} className="delete-btn" style={{ color: "white", fontSize: 18 }}>×</button>
         </div>
         <div className="window-body space-y-4" style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
@@ -447,9 +440,12 @@ function RecipeModal({ recipe: initialRecipe, onClose, onUpdate }: { recipe: Rec
             </div>
           ) : (
             <>
-              {recipe.description && (
-                <p className="text-sm italic" style={{ color: "#7a5a9e" }}>{recipe.description}</p>
-              )}
+              <div className="flex items-start justify-between gap-2">
+                {recipe.description ? (
+                  <p className="text-sm italic flex-1" style={{ color: "#7a5a9e" }}>{recipe.description}</p>
+                ) : <div className="flex-1" />}
+                <button onClick={() => setEditing(true)} className="btn-blue btn-sm" style={{ fontSize: 9, padding: "3px 8px", flexShrink: 0 }}>edit</button>
+              </div>
 
               <div className="flex flex-wrap gap-2">
                 {recipe.servings && <span className="badge">🍽 {recipe.servings}</span>}
