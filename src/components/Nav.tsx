@@ -12,6 +12,7 @@ const links = [
   { href: "/recipes", label: "Recipes", icon: "📖" },
   { href: "/mood", label: "Mood", icon: "💭" },
   { href: "/goals", label: "Goals", icon: "⭐" },
+  { href: "/insights", label: "Insights", icon: "🧠" },
 ];
 
 export default function Nav() {

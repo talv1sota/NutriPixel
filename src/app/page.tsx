@@ -45,8 +45,6 @@ export default function Dashboard() {
   const [mood, setMood] = useState<Mood | null>(null);
   const [date, setDate] = useState(todayStr());
   const [expanded, setExpanded] = useState<MacroKey | null>(null);
-  const [insights, setInsights] = useState<string[]>([]);
-  const [showInsights, setShowInsights] = useState(false);
 
   const fetchData = useCallback(async () => {
     const [lr, gr, er, wr, mr] = await Promise.all([
@@ -66,11 +64,6 @@ export default function Dashboard() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  useEffect(() => {
-    fetch("/api/insights").then(r => r.json()).then(d => {
-      if (d.insights) setInsights(d.insights);
-    });
-  }, []);
 
   const totals = logs.reduce((a, l) => {
     const m = calcMacros(l.food, l.amount);
@@ -318,27 +311,6 @@ export default function Dashboard() {
             </p>
           )}
         </Window>
-      )}
-      {/* AI Insights */}
-      {insights.length > 0 && (
-        <>
-          <div className="text-center">
-            <button onClick={() => setShowInsights(!showInsights)} className="btn-blue btn-sm">
-              {showInsights ? "hide insights" : "✧ Daily Insights ✧"}
-            </button>
-          </div>
-          {showInsights && (
-            <Window title="🧠 Insights (14-day analysis)">
-              <div className="space-y-3">
-                {insights.map((insight, i) => (
-                  <div key={i} className="text-xs leading-relaxed" style={{ color: "#4a3560", padding: "6px 0", borderBottom: i < insights.length - 1 ? "1px dashed #e8d4f5" : "none" }}>
-                    {insight}
-                  </div>
-                ))}
-              </div>
-            </Window>
-          )}
-        </>
       )}
     </div>
   );
