@@ -292,15 +292,16 @@ export default function RecipesPage() {
         )}
       </Window>
 
-      {open && <RecipeModal recipe={open} onClose={() => setOpen(null)} onUpdate={() => { setOpen(null); fetchRecipes(); }} />}
+      {open && <RecipeModal recipe={open} onClose={() => setOpen(null)} onUpdate={fetchRecipes} />}
     </div>
   );
 }
 
-function RecipeModal({ recipe, onClose, onUpdate }: { recipe: Recipe; onClose: () => void; onUpdate: () => void }) {
+function RecipeModal({ recipe: initialRecipe, onClose, onUpdate }: { recipe: Recipe; onClose: () => void; onUpdate: () => void }) {
   const [mounted, setMounted] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [recipe, setRecipe] = useState(initialRecipe);
   const [form, setForm] = useState({
     title: recipe.title,
     description: recipe.description || "",
@@ -321,26 +322,30 @@ function RecipeModal({ recipe, onClose, onUpdate }: { recipe: Recipe; onClose: (
 
   const handleSave = async () => {
     setSaving(true);
-    await fetch("/api/recipes", {
+    const payload = {
+      id: recipe.id,
+      title: form.title,
+      description: form.description || null,
+      sourceUrl: form.sourceUrl || null,
+      servings: form.servings || null,
+      prepTime: form.prepTime || null,
+      cookTime: form.cookTime || null,
+      ingredients: form.ingredients.split("\n").map(s => s.trim()).filter(Boolean),
+      instructions: form.instructions.split("\n").map(s => s.trim()).filter(Boolean),
+      calories: form.calories ? parseFloat(form.calories) : null,
+      protein: form.protein ? parseFloat(form.protein) : null,
+      carbs: form.carbs ? parseFloat(form.carbs) : null,
+      fat: form.fat ? parseFloat(form.fat) : null,
+    };
+    const res = await fetch("/api/recipes", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: recipe.id,
-        title: form.title,
-        description: form.description || null,
-        sourceUrl: form.sourceUrl || null,
-        servings: form.servings || null,
-        prepTime: form.prepTime || null,
-        cookTime: form.cookTime || null,
-        ingredients: form.ingredients.split("\n").map(s => s.trim()).filter(Boolean),
-        instructions: form.instructions.split("\n").map(s => s.trim()).filter(Boolean),
-        calories: form.calories ? parseFloat(form.calories) : null,
-        protein: form.protein ? parseFloat(form.protein) : null,
-        carbs: form.carbs ? parseFloat(form.carbs) : null,
-        fat: form.fat ? parseFloat(form.fat) : null,
-      }),
+      body: JSON.stringify(payload),
     });
+    const updated = await res.json();
+    setRecipe(updated);
     setSaving(false);
+    setEditing(false);
     onUpdate();
   };
 
@@ -366,7 +371,14 @@ function RecipeModal({ recipe, onClose, onUpdate }: { recipe: Recipe; onClose: (
         }}
       >
         <div className="window-title" style={{ flexShrink: 0 }}>
-          <span>{editing ? "📝" : "📖"} {recipe.title}</span>
+          <div className="flex items-center gap-2">
+            <span>{editing ? "📝" : "📖"} {recipe.title}</span>
+            {!editing && (
+              <button onClick={() => setEditing(true)} style={{ fontSize: "7px", opacity: 0.8, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 4, color: "white", cursor: "pointer", padding: "2px 6px" }}>
+                edit
+              </button>
+            )}
+          </div>
           <button onClick={onClose} className="delete-btn" style={{ color: "white", fontSize: 18 }}>×</button>
         </div>
         <div className="window-body space-y-4" style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
@@ -495,9 +507,6 @@ function RecipeModal({ recipe, onClose, onUpdate }: { recipe: Recipe; onClose: (
                 </div>
               )}
 
-              <button onClick={() => setEditing(true)} className="btn-blue w-full py-2">
-                ✧ Edit Recipe ✧
-              </button>
             </>
           )}
         </div>
