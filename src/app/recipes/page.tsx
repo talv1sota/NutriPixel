@@ -45,7 +45,6 @@ export default function RecipesPage() {
   const [flash, setFlash] = useState("");
   const [error, setError] = useState("");
   const [manual, setManual] = useState({ ...emptyManual });
-  const [editId, setEditId] = useState<number | null>(null);
 
   const fetchRecipes = useCallback(async () => {
     const res = await fetch("/api/recipes");
@@ -129,72 +128,6 @@ export default function RecipesPage() {
     }
   };
 
-  const startEdit = (r: Recipe) => {
-    setEditId(r.id);
-    setManual({
-      title: r.title,
-      description: r.description || "",
-      servings: r.servings || "",
-      prepTime: r.prepTime || "",
-      cookTime: r.cookTime || "",
-      ingredients: r.ingredients,
-      instructions: r.instructions,
-      calories: r.calories != null ? String(r.calories) : "",
-      protein: r.protein != null ? String(r.protein) : "",
-      carbs: r.carbs != null ? String(r.carbs) : "",
-      fat: r.fat != null ? String(r.fat) : "",
-    });
-    setMode("manual");
-    setError("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const saveManualOrEdit = async () => {
-    if (editId) {
-      if (!manual.title) { setError("Title is required"); return; }
-      setLoading(true);
-      setError("");
-      try {
-        const payload = {
-          id: editId,
-          title: manual.title,
-          description: manual.description || null,
-          servings: manual.servings || null,
-          prepTime: manual.prepTime || null,
-          cookTime: manual.cookTime || null,
-          ingredients: manual.ingredients.split("\n").map(s => s.trim()).filter(Boolean),
-          instructions: manual.instructions.split("\n").map(s => s.trim()).filter(Boolean),
-          calories: manual.calories ? parseFloat(manual.calories) : null,
-          protein: manual.protein ? parseFloat(manual.protein) : null,
-          carbs: manual.carbs ? parseFloat(manual.carbs) : null,
-          fat: manual.fat ? parseFloat(manual.fat) : null,
-        };
-        const res = await fetch("/api/recipes", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error("Save failed");
-        setManual({ ...emptyManual });
-        setEditId(null);
-        notify(`Updated ${payload.title}!`);
-        fetchRecipes();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed");
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      await saveManual();
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditId(null);
-    setManual({ ...emptyManual });
-    setError("");
-  };
-
   const del = async (id: number) => {
     await fetch(`/api/recipes?id=${id}`, { method: "DELETE" });
     if (open?.id === id) setOpen(null);
@@ -213,7 +146,7 @@ export default function RecipesPage() {
         </div>
       )}
 
-      <Window title={editId ? "📝 Edit Recipe" : "📖 Add Recipe"}>
+      <Window title="📖 Add Recipe">
         <div className="flex gap-2 mb-3">
           <button
             onClick={() => { setMode("url"); setError(""); }}
@@ -322,16 +255,9 @@ export default function RecipesPage() {
                   className="input" />
               </div>
             </div>
-            <div className="flex gap-2">
-              <button onClick={saveManualOrEdit} disabled={loading} className="btn-pink flex-1 py-3">
-                {editId ? "✧ Update Recipe ✧" : "✧ Save Recipe ✧"}
-              </button>
-              {editId && (
-                <button onClick={cancelEdit} className="btn-blue py-3" style={{ padding: "0 16px" }}>
-                  Cancel
-                </button>
-              )}
-            </div>
+            <button onClick={saveManual} disabled={loading} className="btn-pink w-full py-3">
+              ✧ Save Recipe ✧
+            </button>
           </div>
         )}
 
@@ -359,25 +285,64 @@ export default function RecipesPage() {
                     {r.calories != null && <span className="badge">{Math.round(r.calories)} kcal</span>}
                   </div>
                 </button>
-                <div className="flex gap-1">
-                  {editId !== r.id && <button onClick={() => startEdit(r)} className="btn-blue btn-sm" style={{ fontSize: 9, padding: "3px 6px" }}>edit</button>}
-                  <button onClick={() => del(r.id)} className="delete-btn">×</button>
-                </div>
+                <button onClick={() => del(r.id)} className="delete-btn">×</button>
               </div>
             ))}
           </div>
         )}
       </Window>
 
-      {open && <RecipeModal recipe={open} onClose={() => setOpen(null)} />}
+      {open && <RecipeModal recipe={open} onClose={() => setOpen(null)} onUpdate={() => { setOpen(null); fetchRecipes(); }} />}
     </div>
   );
 }
 
-function RecipeModal({ recipe, onClose }: { recipe: Recipe; onClose: () => void }) {
+function RecipeModal({ recipe, onClose, onUpdate }: { recipe: Recipe; onClose: () => void; onUpdate: () => void }) {
   const [mounted, setMounted] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    title: recipe.title,
+    description: recipe.description || "",
+    sourceUrl: recipe.sourceUrl || "",
+    servings: recipe.servings || "",
+    prepTime: recipe.prepTime || "",
+    cookTime: recipe.cookTime || "",
+    ingredients: recipe.ingredients,
+    instructions: recipe.instructions,
+    calories: recipe.calories != null ? String(recipe.calories) : "",
+    protein: recipe.protein != null ? String(recipe.protein) : "",
+    carbs: recipe.carbs != null ? String(recipe.carbs) : "",
+    fat: recipe.fat != null ? String(recipe.fat) : "",
+  });
+
   useEffect(() => { setMounted(true); }, []);
   if (!mounted) return null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    await fetch("/api/recipes", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: recipe.id,
+        title: form.title,
+        description: form.description || null,
+        sourceUrl: form.sourceUrl || null,
+        servings: form.servings || null,
+        prepTime: form.prepTime || null,
+        cookTime: form.cookTime || null,
+        ingredients: form.ingredients.split("\n").map(s => s.trim()).filter(Boolean),
+        instructions: form.instructions.split("\n").map(s => s.trim()).filter(Boolean),
+        calories: form.calories ? parseFloat(form.calories) : null,
+        protein: form.protein ? parseFloat(form.protein) : null,
+        carbs: form.carbs ? parseFloat(form.carbs) : null,
+        fat: form.fat ? parseFloat(form.fat) : null,
+      }),
+    });
+    setSaving(false);
+    onUpdate();
+  };
 
   const ings = recipe.ingredients.split("\n").filter(Boolean);
   const steps = recipe.instructions.split("\n").filter(Boolean);
@@ -401,68 +366,139 @@ function RecipeModal({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
         }}
       >
         <div className="window-title" style={{ flexShrink: 0 }}>
-          <span>📖 {recipe.title}</span>
+          <span>{editing ? "📝" : "📖"} {recipe.title}</span>
           <button onClick={onClose} className="delete-btn" style={{ color: "white", fontSize: 18 }}>×</button>
         </div>
         <div className="window-body space-y-4" style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
-          {recipe.description && (
-            <p className="text-sm italic" style={{ color: "#7a5a9e" }}>{recipe.description}</p>
-          )}
-
-          <div className="flex flex-wrap gap-2">
-            {recipe.servings && <span className="badge">🍽 {recipe.servings}</span>}
-            {recipe.prepTime && <span className="badge">Prep {recipe.prepTime}</span>}
-            {recipe.cookTime && <span className="badge">Cook {recipe.cookTime}</span>}
-            {recipe.totalTime && <span className="badge">⏱ {recipe.totalTime}</span>}
-          </div>
-
-          {(recipe.calories != null || recipe.protein != null) && (
-            <div className="stat-box" style={{ padding: 10 }}>
-              <div className="pixel-label mb-2" style={{ fontSize: 7 }}>Per serving</div>
-              <div className="flex justify-around text-xs font-bold">
-                {recipe.calories != null && <div><div style={{ color: "#6bcb77" }}>{Math.round(recipe.calories)}</div><div style={{ fontSize: 9 }}>kcal</div></div>}
-                {recipe.protein != null && <div><div style={{ color: "#5bb8e8" }}>{recipe.protein}g</div><div style={{ fontSize: 9 }}>protein</div></div>}
-                {recipe.carbs != null && <div><div style={{ color: "#ffc145" }}>{recipe.carbs}g</div><div style={{ fontSize: 9 }}>carbs</div></div>}
-                {recipe.fat != null && <div><div style={{ color: "#ff69b4" }}>{recipe.fat}g</div><div style={{ fontSize: 9 }}>fat</div></div>}
+          {editing ? (
+            <div className="space-y-3">
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Title</label>
+                <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input w-full" />
+              </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Description</label>
+                <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="input w-full" />
+              </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Source URL</label>
+                <input type="text" value={form.sourceUrl} onChange={e => setForm({ ...form, sourceUrl: e.target.value })} className="input w-full" />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Servings</label>
+                  <input type="text" value={form.servings} onChange={e => setForm({ ...form, servings: e.target.value })} className="input w-full" />
+                </div>
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Prep</label>
+                  <input type="text" value={form.prepTime} onChange={e => setForm({ ...form, prepTime: e.target.value })} className="input w-full" />
+                </div>
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Cook</label>
+                  <input type="text" value={form.cookTime} onChange={e => setForm({ ...form, cookTime: e.target.value })} className="input w-full" />
+                </div>
+              </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Ingredients (one per line)</label>
+                <textarea value={form.ingredients} onChange={e => setForm({ ...form, ingredients: e.target.value })} className="input" rows={5} />
+              </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Instructions (one per line)</label>
+                <textarea value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} className="input" rows={5} />
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Cal</label>
+                  <input type="number" value={form.calories} onChange={e => setForm({ ...form, calories: e.target.value })} className="input w-full" />
+                </div>
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>P</label>
+                  <input type="number" value={form.protein} onChange={e => setForm({ ...form, protein: e.target.value })} className="input w-full" />
+                </div>
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>C</label>
+                  <input type="number" value={form.carbs} onChange={e => setForm({ ...form, carbs: e.target.value })} className="input w-full" />
+                </div>
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>F</label>
+                  <input type="number" value={form.fat} onChange={e => setForm({ ...form, fat: e.target.value })} className="input w-full" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleSave} disabled={saving} className="btn-pink flex-1 py-2">
+                  {saving ? "saving..." : "✧ Save ✧"}
+                </button>
+                <button onClick={() => setEditing(false)} className="btn-blue py-2" style={{ padding: "0 16px" }}>
+                  Cancel
+                </button>
               </div>
             </div>
-          )}
+          ) : (
+            <>
+              {recipe.description && (
+                <p className="text-sm italic" style={{ color: "#7a5a9e" }}>{recipe.description}</p>
+              )}
 
-          <div>
-            <div className="pixel-label mb-2" style={{ fontSize: 8 }}>✧ Ingredients ✧</div>
-            <ul className="text-sm space-y-1">
-              {ings.map((i, idx) => (
-                <li key={idx} style={{ paddingLeft: 22, position: "relative" }}>
-                  <span style={{ position: "absolute", left: 0, color: "#e84d98" }}>✦</span>{i}
-                </li>
-              ))}
-            </ul>
-          </div>
+              <div className="flex flex-wrap gap-2">
+                {recipe.servings && <span className="badge">🍽 {recipe.servings}</span>}
+                {recipe.prepTime && <span className="badge">Prep {recipe.prepTime}</span>}
+                {recipe.cookTime && <span className="badge">Cook {recipe.cookTime}</span>}
+                {recipe.totalTime && <span className="badge">⏱ {recipe.totalTime}</span>}
+              </div>
 
-          <div>
-            <div className="pixel-label mb-2" style={{ fontSize: 8 }}>✧ Instructions ✧</div>
-            <ol className="text-sm space-y-2">
-              {steps.map((s, idx) => (
-                <li key={idx} style={{ paddingLeft: 22, position: "relative" }}>
-                  <span style={{
-                    position: "absolute", left: 0, top: 0,
-                    background: "#9b5de5", color: "white",
-                    borderRadius: "50%", width: 16, height: 16,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 10, fontWeight: 700,
-                  }}>{idx + 1}</span>
-                  {s}
-                </li>
-              ))}
-            </ol>
-          </div>
+              {(recipe.calories != null || recipe.protein != null) && (
+                <div className="stat-box" style={{ padding: 10 }}>
+                  <div className="pixel-label mb-2" style={{ fontSize: 7 }}>Per serving</div>
+                  <div className="flex justify-around text-xs font-bold">
+                    {recipe.calories != null && <div><div style={{ color: "#6bcb77" }}>{Math.round(recipe.calories)}</div><div style={{ fontSize: 9 }}>kcal</div></div>}
+                    {recipe.protein != null && <div><div style={{ color: "#5bb8e8" }}>{recipe.protein}g</div><div style={{ fontSize: 9 }}>protein</div></div>}
+                    {recipe.carbs != null && <div><div style={{ color: "#ffc145" }}>{recipe.carbs}g</div><div style={{ fontSize: 9 }}>carbs</div></div>}
+                    {recipe.fat != null && <div><div style={{ color: "#ff69b4" }}>{recipe.fat}g</div><div style={{ fontSize: 9 }}>fat</div></div>}
+                  </div>
+                </div>
+              )}
 
-          {recipe.sourceUrl && (
-            <div className="text-xs text-center">
-              <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" style={{ color: "#9b5de5" }}>
-                source ↗
-              </a>
-            </div>
+              <div>
+                <div className="pixel-label mb-2" style={{ fontSize: 8 }}>✧ Ingredients ✧</div>
+                <ul className="text-sm space-y-1">
+                  {ings.map((i, idx) => (
+                    <li key={idx} style={{ paddingLeft: 22, position: "relative" }}>
+                      <span style={{ position: "absolute", left: 0, color: "#e84d98" }}>✦</span>{i}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <div className="pixel-label mb-2" style={{ fontSize: 8 }}>✧ Instructions ✧</div>
+                <ol className="text-sm space-y-2">
+                  {steps.map((s, idx) => (
+                    <li key={idx} style={{ paddingLeft: 22, position: "relative" }}>
+                      <span style={{
+                        position: "absolute", left: 0, top: 0,
+                        background: "#9b5de5", color: "white",
+                        borderRadius: "50%", width: 16, height: 16,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 10, fontWeight: 700,
+                      }}>{idx + 1}</span>
+                      {s}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              {recipe.sourceUrl && (
+                <div className="text-xs text-center">
+                  <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" style={{ color: "#9b5de5" }}>
+                    source ↗
+                  </a>
+                </div>
+              )}
+
+              <button onClick={() => setEditing(true)} className="btn-blue w-full py-2">
+                ✧ Edit Recipe ✧
+              </button>
+            </>
           )}
         </div>
       </div>
