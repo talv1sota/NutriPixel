@@ -10,43 +10,17 @@ interface DayData {
   burned: number;
 }
 
-interface InsightsData {
-  today: string[];
-  week: string[];
-  month: string[];
-  overall: string[];
-  days: DayData[];
-}
-
-function InsightList({ items }: { items: string[] }) {
-  return (
-    <div className="space-y-2">
-      {items.map((item, i) => (
-        <div
-          key={i}
-          className="text-xs leading-relaxed"
-          style={{
-            color: "#4a3560",
-            padding: "5px 0",
-            borderBottom: i < items.length - 1 ? "1px dashed #e8d4f5" : "none",
-          }}
-        >
-          {item}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function InsightsPage() {
-  const [data, setData] = useState<InsightsData | null>(null);
+  const [insights, setInsights] = useState<string[]>([]);
+  const [days, setDays] = useState<DayData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/insights")
       .then((r) => r.json())
       .then((d) => {
-        setData(d);
+        if (d.insights) setInsights(d.insights);
+        if (d.days) setDays(d.days);
         setLoading(false);
       });
   }, []);
@@ -60,70 +34,52 @@ export default function InsightsPage() {
     );
   }
 
-  if (!data) return null;
-
-  const maxNet = Math.max(...(data.days.map((d) => d.net) || [1]), 1);
+  const maxNet = Math.max(...days.map((d) => d.net), 1);
 
   return (
     <div className="space-y-5 pt-3 max-w-lg mx-auto">
       <div className="pixel-label text-center" style={{ fontSize: "10px" }}>✧ Insights ✧</div>
 
-      {data.overall.length > 0 && (
-        <Window title="🏆 Overall Progress">
-          <InsightList items={data.overall} />
+      {insights.length > 0 && (
+        <Window title="🧠 Your Analysis">
+          <div className="space-y-4">
+            {insights.map((insight, i) => (
+              <div
+                key={i}
+                className="text-xs leading-relaxed"
+                style={{
+                  color: "#4a3560",
+                  padding: "8px 0",
+                  borderBottom: i < insights.length - 1 ? "1px solid #e8d4f5" : "none",
+                }}
+              >
+                {insight}
+              </div>
+            ))}
+          </div>
         </Window>
       )}
 
-      {data.today.length > 0 && (
-        <Window title="📅 Today">
-          <InsightList items={data.today} />
-        </Window>
-      )}
-
-      {data.week.length > 0 && (
-        <Window title="📊 This Week">
-          <InsightList items={data.week} />
-        </Window>
-      )}
-
-      {data.month.length > 0 && (
-        <Window title="📈 This Month">
-          <InsightList items={data.month} />
-        </Window>
-      )}
-
-      {data.days.length > 0 && (
+      {days.length > 0 && (
         <Window title="📊 Daily Net Calories">
           <div className="space-y-1">
-            {data.days.map((d) => {
+            {days.map((d) => {
               const pct = Math.min((d.net / maxNet) * 100, 100);
               const isHigh = d.net > 1100;
               const isLow = d.calories > 0 && d.net < 400;
               return (
                 <div key={d.date} className="flex items-center gap-2 text-[10px]">
-                  <span style={{ width: 42, color: "#9b80b8", flexShrink: 0 }}>
-                    {d.date.slice(5)}
-                  </span>
+                  <span style={{ width: 42, color: "#9b80b8", flexShrink: 0 }}>{d.date.slice(5)}</span>
                   <div className="flex-1 h-3 rounded" style={{ background: "#f5eeff" }}>
-                    <div
-                      className="h-full rounded"
-                      style={{
-                        width: `${pct}%`,
-                        background: isHigh ? "#ff6b6b" : isLow ? "#ffc145" : "#6bcb77",
-                      }}
-                    />
+                    <div className="h-full rounded" style={{
+                      width: `${pct}%`,
+                      background: isHigh ? "#ff6b6b" : isLow ? "#ffc145" : "#6bcb77",
+                    }} />
                   </div>
-                  <span
-                    className="font-bold"
-                    style={{
-                      width: 40,
-                      textAlign: "right",
-                      color: isHigh ? "#ff4444" : isLow ? "#dda520" : "#6bcb77",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {d.net}
-                  </span>
+                  <span className="font-bold" style={{
+                    width: 40, textAlign: "right", flexShrink: 0,
+                    color: isHigh ? "#ff4444" : isLow ? "#dda520" : "#6bcb77",
+                  }}>{d.net}</span>
                 </div>
               );
             })}
