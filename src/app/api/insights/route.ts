@@ -86,27 +86,36 @@ export async function GET() {
 
   const insights: string[] = [];
 
+  // Helper: push header only when first item is added to a section
+  function section(header: string) {
+    let pushed = false;
+    return (text: string) => {
+      if (!pushed) { insights.push(`##${header}`); pushed = true; }
+      insights.push(text);
+    };
+  }
+
   if (allDays.length === 0) {
-    return NextResponse.json({ insights: ["Start logging food to get personalized insights."], days: [] });
+    return NextResponse.json({ insights: ["Start logging food to get personalized insights."] });
   }
 
   // ============ OVERALL PROGRESS ============
-  insights.push("##Progress");
+  const progress = section("Progress");
   if (weights.length >= 2) {
     const total = Math.round((weights[0].weight - weights[weights.length - 1].weight) * 10) / 10;
     const totalDays = Math.round((new Date(weights[weights.length - 1].date).getTime() - new Date(weights[0].date).getTime()) / (1000 * 60 * 60 * 24));
     if (total > 0) {
-      insights.push(`You've lost ${total} lbs total (${weights[0].weight} → ${weights[weights.length - 1].weight}) over ${totalDays} days. That's solid, sustainable progress — about ${Math.round(total / totalDays * 7 * 10) / 10} lbs/week average.`);
+      progress(`You've lost ${total} lbs total (${weights[0].weight} → ${weights[weights.length - 1].weight}) over ${totalDays} days. That's solid, sustainable progress — about ${Math.round(total / totalDays * 7 * 10) / 10} lbs/week average.`);
     }
     if (goal?.targetWeight) {
       const toGo = Math.round((weights[weights.length - 1].weight - goal.targetWeight) * 10) / 10;
-      if (toGo > 0) insights.push(`You're ${toGo} lbs from your goal of ${goal.targetWeight}. The last few pounds are always the slowest — your body has less to lose and fights harder to hold on. Stay patient.`);
-      else insights.push(`You've hit your goal weight. Time to think about maintenance — gradually increase calories by 100-200/day and find your equilibrium.`);
+      if (toGo > 0) progress(`You're ${toGo} lbs from your goal of ${goal.targetWeight}. The last few pounds are always the slowest — your body has less to lose and fights harder to hold on. Stay patient.`);
+      else progress(`You've hit your goal weight. Time to think about maintenance — gradually increase calories by 100-200/day and find your equilibrium.`);
     }
   }
 
   // ============ WEIGHT TREND (RECENT) ============
-  insights.push("##Weight");
+  const weight = section("Weight");
   const recentWeights = weights.filter(w => w.date >= weekFrom);
   const twoWeekWeights = weights.filter(w => w.date >= dateNDaysAgo(13));
   if (twoWeekWeights.length >= 2) {
@@ -128,7 +137,7 @@ export async function GET() {
       } else {
         reason += ` At your current weight, your deficit is smaller than when you started. Your body also adapts to prolonged restriction. Try adding 2-3 walking sessions this week or cycling your calories (lower on rest days, slightly higher on active days).`;
       }
-      insights.push(reason);
+      weight(reason);
     } else if (diff > 0.5) {
       // Went up
       const highCarbDays = weekDays.filter(d => d.carbs > 100);
@@ -138,7 +147,7 @@ export async function GET() {
       } else {
         reason += ` This is likely normal daily fluctuation from sodium, hydration, or digestion timing. Don't react to a single weigh-in — look at the 7-day trend.`;
       }
-      insights.push(reason);
+      weight(reason);
     } else if (diff < -0.5) {
       // Check if the drop is plausible as fat loss or mostly water
       const periodDays = allDays.filter(d => d.date >= first.date && d.date <= last.date);
@@ -151,15 +160,15 @@ export async function GET() {
 
       if (Math.abs(diff) > expectedFatLoss * 2 && Math.abs(diff) > 1.5) {
         // Drop is way bigger than deficit explains — it's mostly water
-        insights.push(`Down ${Math.abs(diff)} lbs in ${daySpan} days. Your calorie deficit only accounts for ~${expectedFatLoss} lbs of that, so a good chunk is water weight coming off (maybe from lower carb/sodium days recently, or post-period water release). The fat loss underneath is real — the water drop just makes the scale look more dramatic than it is. Don't expect this rate to continue linearly.`);
+        weight(`Down ${Math.abs(diff)} lbs in ${daySpan} days. Your calorie deficit only accounts for ~${expectedFatLoss} lbs of that, so a good chunk is water weight coming off (maybe from lower carb/sodium days recently, or post-period water release). The fat loss underneath is real — the water drop just makes the scale look more dramatic than it is. Don't expect this rate to continue linearly.`);
       } else {
-        insights.push(`Down ${Math.abs(diff)} lbs in ${daySpan} days — this lines up well with your deficit. Steady, real progress.`);
+        weight(`Down ${Math.abs(diff)} lbs in ${daySpan} days — this lines up well with your deficit. Steady, real progress.`);
       }
     }
   }
 
   // ============ EATING PATTERNS ============
-  insights.push("##Eating Patterns");
+  const eating = section("Eating Patterns");
   if (weekDays.length >= 3) {
     // Detect feast/famine cycling
     const sorted = [...weekDays].sort((a, b) => a.net - b.net);
@@ -177,21 +186,21 @@ export async function GET() {
       }
 
       if (cycles >= 2) {
-        insights.push(`There's a restrict-then-overeat pattern happening — very low days (like ${dayName(lowest.date)} at ${Math.round(lowest.net)} kcal) followed by higher days (${dayName(highest.date)} at ${Math.round(highest.net)} kcal). This yo-yo pattern is counterproductive: the low days trigger hunger hormones (ghrelin spikes after ~16 hours of undereating), making the next day's overshoot almost inevitable. Aim for consistent 800-1100 kcal days instead of alternating between 200 and 1500.`);
+        eating(`There's a restrict-then-overeat pattern happening — very low days (like ${dayName(lowest.date)} at ${Math.round(lowest.net)} kcal) followed by higher days (${dayName(highest.date)} at ${Math.round(highest.net)} kcal). This yo-yo pattern is counterproductive: the low days trigger hunger hormones (ghrelin spikes after ~16 hours of undereating), making the next day's overshoot almost inevitable. Aim for consistent 800-1100 kcal days instead of alternating between 200 and 1500.`);
       } else {
-        insights.push(`Your intake ranged from ${Math.round(lowest.net)} (${dayName(lowest.date)}) to ${Math.round(highest.net)} kcal (${dayName(highest.date)}) this week. Some variation is fine, but a ${Math.round(range)} kcal swing makes it hard for your body to find a rhythm. Try to keep days within a ~300 kcal range of each other.`);
+        eating(`Your intake ranged from ${Math.round(lowest.net)} (${dayName(lowest.date)}) to ${Math.round(highest.net)} kcal (${dayName(highest.date)}) this week. Some variation is fine, but a ${Math.round(range)} kcal swing makes it hard for your body to find a rhythm. Try to keep days within a ~300 kcal range of each other.`);
       }
     }
 
     // Check for days that are dangerously low
     const subMinDays = weekDays.filter(d => d.calories > 0 && d.calories < 400);
     if (subMinDays.length >= 2) {
-      insights.push(`${subMinDays.length} days this week under 400 kcal. Under-fueling this much suppresses thyroid function (T3 drops), increases cortisol, and promotes muscle breakdown. Even on a cut, 800 kcal should be the floor. Your body doesn't distinguish between "dieting" and "starving" — it just slows everything down to survive.`);
+      eating(`${subMinDays.length} days this week under 400 kcal. Under-fueling this much suppresses thyroid function (T3 drops), increases cortisol, and promotes muscle breakdown. Even on a cut, 800 kcal should be the floor. Your body doesn't distinguish between "dieting" and "starving" — it just slows everything down to survive.`);
     }
   }
 
   // ============ MACRO DEEP DIVE ============
-  insights.push("##Macros");
+  const macros = section("Macros");
   const days7 = weekDays.length > 0 ? weekDays : allDays.slice(-7);
   if (days7.length > 0) {
     const avgP = Math.round(days7.reduce((s, d) => s + d.protein, 0) / days7.length);
@@ -203,16 +212,16 @@ export async function GET() {
     const currentWeight = weights.length > 0 ? weights[weights.length - 1].weight : null;
     const idealProtein = currentWeight ? Math.round(currentWeight * 0.8) : targetProtein;
     if (idealProtein && avgP < idealProtein * 0.7) {
-      insights.push(`Protein is critically low at ${avgP}g/day (recommended: ~${idealProtein}g for your weight). During a deficit, protein is non-negotiable — it's what prevents your body from burning muscle for fuel. Without enough protein, up to 25% of weight lost can be lean mass instead of fat. Add greek yogurt, egg whites, chicken breast, or tuna to every day.`);
+      macros(`Protein is critically low at ${avgP}g/day (recommended: ~${idealProtein}g for your weight). During a deficit, protein is non-negotiable — it's what prevents your body from burning muscle for fuel. Without enough protein, up to 25% of weight lost can be lean mass instead of fat. Add greek yogurt, egg whites, chicken breast, or tuna to every day.`);
     } else if (idealProtein && avgP < idealProtein) {
-      insights.push(`Protein is at ${avgP}g/day — getting closer but still below the ~${idealProtein}g target for your weight. You're leaving muscle preservation on the table. Even small additions help: one can of tuna = 26g, a cup of greek yogurt = 17g.`);
+      macros(`Protein is at ${avgP}g/day — getting closer but still below the ~${idealProtein}g target for your weight. You're leaving muscle preservation on the table. Even small additions help: one can of tuna = 26g, a cup of greek yogurt = 17g.`);
     } else if (idealProtein && avgP >= idealProtein) {
-      insights.push(`Protein is solid at ${avgP}g/day (target: ~${idealProtein}g). This is protecting your lean mass during the cut. Keep it up.`);
+      macros(`Protein is solid at ${avgP}g/day (target: ~${idealProtein}g). This is protecting your lean mass during the cut. Keep it up.`);
     }
 
     // Fat too low check
     if (avgF < 25 && avgCal > 500) {
-      insights.push(`Fat intake is very low (${avgF}g/day). Dietary fat is essential for hormone production — going under 20-25g/day can disrupt estrogen, testosterone, and cortisol levels. Add small amounts of olive oil, avocado, or nuts.`);
+      macros(`Fat intake is very low (${avgF}g/day). Dietary fat is essential for hormone production — going under 20-25g/day can disrupt estrogen, testosterone, and cortisol levels. Add small amounts of olive oil, avocado, or nuts.`);
     }
 
     // Carb/sodium and water retention
@@ -223,14 +232,14 @@ export async function GET() {
       if (beforeW.length > 0) {
         const wBefore = beforeW[beforeW.length - 1].weight;
         if (latestW.weight >= wBefore) {
-          insights.push(`High-carb days on ${highCarbDays.map(d => dayName(d.date)).join(", ")} (${highCarbDays.map(d => Math.round(d.carbs) + "g").join(", ")}) likely caused temporary water retention. For every 1g of glycogen stored, your body holds 3-4g of water. A 200g carb day can add 1-2 lbs of water weight that takes 2-3 days to clear. This isn't fat — don't panic-restrict in response.`);
+          macros(`High-carb days on ${highCarbDays.map(d => dayName(d.date)).join(", ")} (${highCarbDays.map(d => Math.round(d.carbs) + "g").join(", ")}) likely caused temporary water retention. For every 1g of glycogen stored, your body holds 3-4g of water. A 200g carb day can add 1-2 lbs of water weight that takes 2-3 days to clear. This isn't fat — don't panic-restrict in response.`);
         }
       }
     }
   }
 
   // ============ FOOD-LEVEL INSIGHTS ============
-  insights.push("##Foods");
+  const foods = section("Foods");
   // Build per-food stats with protein info
   const foodStats = new Map<string, { totalCal: number; totalProtein: number; count: number }>();
   for (const log of logs) {
@@ -271,7 +280,7 @@ export async function GET() {
       const avgC = Math.round(v.totalCal / v.count);
       return `${name} (${avgP}g protein / ${avgC} kcal)`;
     }).join("; ");
-    insights.push(`Your best protein-per-calorie foods: ${items}. These are your MVPs — lean, high-protein, and efficient. Build meals around these.`);
+    foods(`Your best protein-per-calorie foods: ${items}. These are your MVPs — lean, high-protein, and efficient. Build meals around these.`);
   }
 
   if (calorieSinks.length > 0) {
@@ -279,7 +288,7 @@ export async function GET() {
       const avg = Math.round(v.totalCal / v.count);
       return `${name} (~${avg} kcal, ${v.count}x)`;
     }).join("; ");
-    insights.push(`Calorie-dense, low-protein recurring items: ${items}. These contribute the most calories relative to their nutritional value. Swapping or reducing portions here has the biggest impact without sacrificing protein.`);
+    foods(`Calorie-dense, low-protein recurring items: ${items}. These contribute the most calories relative to their nutritional value. Swapping or reducing portions here has the biggest impact without sacrificing protein.`);
   }
 
   // Zero-calorie drink patterns (positive reinforcement)
@@ -293,26 +302,39 @@ export async function GET() {
     return isDrink && avgCal < 25;
   });
   if (zeroDrinks.length > 0) {
-    insights.push(`Good habit: reaching for low/zero-calorie drinks (${zeroDrinks.map(([n]) => n).join(", ")}). Liquid calories are the easiest to cut without feeling it.`);
+    foods(`Good habit: reaching for low/zero-calorie drinks (${zeroDrinks.map(([n]) => n).join(", ")}). Liquid calories are the easiest to cut without feeling it.`);
   }
 
   // ============ EXERCISE PATTERNS ============
-  insights.push("##Exercise");
   const exDays = allDays.filter(d => d.burned > 0);
-  const noExWeek = weekDays.filter(d => d.burned > 0).length === 0;
-  if (noExWeek && exDays.length > 0) {
-    insights.push(`No exercise logged this week. You had ${exDays.length} active days in the past month. Even 3 walking sessions per week at your current incline routine adds ~900 kcal/week of deficit — that's roughly a quarter pound per week from exercise alone.`);
+  const weekExDays = weekDays.filter(d => d.burned > 0);
+  const totalBurnedMonth = exDays.reduce((s, d) => s + d.burned, 0);
+  const totalBurnedWeek = weekExDays.reduce((s, d) => s + d.burned, 0);
+
+  // Always have something to say about exercise
+  const exInsights: string[] = [];
+  if (weekExDays.length === 0 && exDays.length > 0) {
+    exInsights.push(`No exercise logged this week, but you had ${exDays.length} active days earlier this month (${totalBurnedMonth} kcal total). Getting back to 3 sessions/week at your walking pad routine would add ~900 kcal/week to your deficit — that's roughly a quarter pound per week from movement alone.`);
   } else if (exDays.length === 0) {
-    insights.push(`No exercise logged recently. You don't need to run marathons — your walking pad at 5% incline for 30-45 minutes is a great calorie burner with low injury risk. Try to build a 3-4 day/week habit.`);
-  } else if (exDays.length >= 3) {
-    const weekEx = weekDays.filter(d => d.burned > 0);
-    if (weekEx.length >= 3) {
-      insights.push(`${weekEx.length} exercise days this week — great consistency. Regular movement not only burns calories but improves insulin sensitivity, which helps your body partition nutrients toward muscle instead of fat storage.`);
+    exInsights.push(`No exercise logged this month. Adding your walking pad at 5% incline for 30-45 min, 3x/week, would burn ~900 kcal/week and accelerate your progress significantly. It's also one of the best things you can do for appetite regulation — moderate exercise actually reduces hunger hormones.`);
+  } else {
+    if (weekExDays.length >= 3) {
+      exInsights.push(`${weekExDays.length} exercise days this week (${totalBurnedWeek} kcal burned). Great consistency — regular movement improves insulin sensitivity, which helps your body burn fat instead of storing it.`);
+    } else if (weekExDays.length > 0) {
+      exInsights.push(`${weekExDays.length} exercise day(s) this week (${totalBurnedWeek} kcal). Bumping to 3-4 days would make a noticeable difference — you're already doing the hard part by showing up.`);
     }
+    if (totalBurnedMonth > 0) {
+      const lbsFromEx = Math.round(totalBurnedMonth / 3500 * 10) / 10;
+      exInsights.push(`This month: ${exDays.length} active days, ${totalBurnedMonth} total kcal burned (~${lbsFromEx} lbs of deficit from exercise). ${exDays.length >= 8 ? "That's a meaningful contribution to your results." : "Doubling your exercise frequency would roughly double this."}`);
+    }
+  }
+  if (exInsights.length > 0) {
+    insights.push("##Exercise");
+    insights.push(...exInsights);
   }
 
   // ============ PROJECTION / TRAJECTORY ============
-  insights.push("##Trajectory");
+  const trajectory = section("Trajectory");
   const currentWeight = weights.length > 0 ? weights[weights.length - 1].weight : null;
   if (currentWeight && weekDays.length >= 3 && goal) {
     const weekAvgNet = Math.round(weekDays.reduce((s, d) => s + d.net, 0) / weekDays.length);
@@ -340,17 +362,17 @@ export async function GET() {
         const goalDateStr = goalDate.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 
         if (projectedLbsPerWeek > 2.5) {
-          insights.push(`⚡ At your current pace (~${projectedLbsPerWeek} lbs/week), you'd hit ${goal.targetWeight} by ${goalDateStr}. But this rate is aggressive — losing more than 2 lbs/week increases muscle loss and makes rebound more likely. Consider slowing down slightly for more sustainable results.`);
+          trajectory(`⚡ At your current pace (~${projectedLbsPerWeek} lbs/week), you'd hit ${goal.targetWeight} by ${goalDateStr}. But this rate is aggressive — losing more than 2 lbs/week increases muscle loss and makes rebound more likely. Consider slowing down slightly for more sustainable results.`);
         } else if (projectedLbsPerWeek > 1) {
-          insights.push(`📍 Trajectory: at ~${projectedLbsPerWeek} lbs/week, you're on track to reach ${goal.targetWeight} around ${goalDateStr}. This is a healthy pace. Stay consistent and you'll get there.`);
+          trajectory(`📍 Trajectory: at ~${projectedLbsPerWeek} lbs/week, you're on track to reach ${goal.targetWeight} around ${goalDateStr}. This is a healthy pace. Stay consistent and you'll get there.`);
         } else if (projectedLbsPerWeek > 0.3) {
-          insights.push(`📍 Trajectory: ~${projectedLbsPerWeek} lbs/week puts your goal of ${goal.targetWeight} around ${goalDateStr}. Progress is real but slow. Adding 2-3 exercise sessions per week could nearly double your rate.`);
+          trajectory(`📍 Trajectory: ~${projectedLbsPerWeek} lbs/week puts your goal of ${goal.targetWeight} around ${goalDateStr}. Progress is real but slow. Adding 2-3 exercise sessions per week could nearly double your rate.`);
         } else {
-          insights.push(`🐌 At current intake, you're barely in deficit (~${projectedLbsPerWeek} lbs/week). At this rate, reaching ${goal.targetWeight} would take ${weeksToGoal}+ weeks. Either reduce intake by 200-300 kcal/day or add consistent exercise to move the needle.`);
+          trajectory(`🐌 At current intake, you're barely in deficit (~${projectedLbsPerWeek} lbs/week). At this rate, reaching ${goal.targetWeight} would take ${weeksToGoal}+ weeks. Either reduce intake by 200-300 kcal/day or add consistent exercise to move the needle.`);
         }
       }
     } else if (projectedLbsPerWeek <= 0) {
-      insights.push(`🚨 Based on this week's eating, you're at or above maintenance (~${tdee} kcal TDEE vs ~${weekAvgNet} net intake). Weight loss has stalled or will reverse if this continues. You need to either cut ~${Math.abs(Math.round(dailyDeficit))} kcal/day or burn more through exercise.`);
+      trajectory(`🚨 Based on this week's eating, you're at or above maintenance (~${tdee} kcal TDEE vs ~${weekAvgNet} net intake). Weight loss has stalled or will reverse if this continues. You need to either cut ~${Math.abs(Math.round(dailyDeficit))} kcal/day or burn more through exercise.`);
     }
 
     // Trend direction change detection
@@ -364,18 +386,19 @@ export async function GET() {
       const secondTrend = secondHalf.length >= 2 ? secondHalf[secondHalf.length - 1].weight - secondHalf[0].weight : 0;
 
       if (firstTrend < -0.3 && secondTrend > 0.1) {
-        insights.push(`📊 Your downward trend appears to be reversing — weight was dropping in the first half of the past 2 weeks but has ticked up recently. Check if your intake crept up or exercise dropped off. Early intervention now prevents a full stall.`);
+        trajectory(`📊 Your downward trend appears to be reversing — weight was dropping in the first half of the past 2 weeks but has ticked up recently. Check if your intake crept up or exercise dropped off. Early intervention now prevents a full stall.`);
       } else if (firstTrend > 0.1 && secondTrend < -0.3) {
-        insights.push(`📊 Good news — after a slight uptick, your weight is trending down again. Whatever you adjusted is working. Keep this week's habits going.`);
+        trajectory(`📊 Good news — after a slight uptick, your weight is trending down again. Whatever you adjusted is working. Keep this week's habits going.`);
       }
     }
   }
 
   // ============ WEEKLY SUMMARY ============
+  const weekly = section("This Week");
   if (weekDays.length > 0) {
     const weekAvgNet = Math.round(weekDays.reduce((s, d) => s + d.net, 0) / weekDays.length);
     const weekAvgCal = Math.round(weekDays.reduce((s, d) => s + d.calories, 0) / weekDays.length);
-    insights.push(`This week: averaging ${weekAvgCal} kcal eaten, ${weekAvgNet} net after exercise, across ${weekDays.length} logged days.`);
+    weekly(`This week: averaging ${weekAvgCal} kcal eaten, ${weekAvgNet} net after exercise, across ${weekDays.length} logged days.`);
   }
 
   return NextResponse.json({ insights });

@@ -34,10 +34,11 @@ export default function InsightsPage() {
           {insights.map((item, i) => {
             if (item.startsWith("##")) {
               return (
-                <div key={i} style={{ marginTop: i > 0 ? 16 : 0, marginBottom: 6, borderBottom: "1px solid #e8d4f5", paddingBottom: 4 }}>
-                  <span className="pixel-label" style={{ fontSize: "8px", color: "#9b5de5", letterSpacing: 1 }}>
+                <div key={i} className="text-center" style={{ marginTop: i > 0 ? 18 : 0, marginBottom: 8 }}>
+                  <span style={{ color: "#d4b8e8", fontSize: "8px", letterSpacing: 3 }}>✦ ˚ ✧ ˚ ✦</span>
+                  <div className="pixel-label" style={{ fontSize: "8px", color: "#9b5de5", letterSpacing: 1, marginTop: 4 }}>
                     {item.slice(2)}
-                  </span>
+                  </div>
                 </div>
               );
             }
