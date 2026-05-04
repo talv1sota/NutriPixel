@@ -46,12 +46,13 @@ export default function Nav() {
           </button>
         </div>
 
-        <div className="flex items-stretch justify-center py-3 px-4 bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50">
+        <div className="flex items-stretch overflow-x-auto py-3 px-2 bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50" style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               className={`nav-tab ${pathname === link.href ? "active" : ""}`}
+              style={{ flexShrink: 0 }}
             >
               <span className="text-base">{link.icon}</span>
               <span className="hidden sm:inline">{link.label}</span>
