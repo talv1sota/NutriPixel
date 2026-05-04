@@ -10,35 +10,12 @@ function categorize(text: string) {
   return "neutral";
 }
 
-const cardStyles = {
-  alert: { bg: "#fff0f0", border: "#ff6b6b", accent: "#cc3333" },
-  warning: { bg: "#fff8ed", border: "#ffc145", accent: "#b8860b" },
-  positive: { bg: "#edfff0", border: "#6bcb77", accent: "#2d8a4e" },
-  neutral: { bg: "#f5eeff", border: "#d4b8e8", accent: "#6b4d8a" },
+const cardColors = {
+  alert: { bg: "#fff0f0", border: "#ffcccc", color: "#cc3333" },
+  warning: { bg: "#fff8ed", border: "#ffe4b5", color: "#b8860b" },
+  positive: { bg: "#edfff0", border: "#c8f0cc", color: "#2d8a4e" },
+  neutral: { bg: "transparent", border: "transparent", color: "#4a3560" },
 };
-
-interface Section {
-  title: string;
-  items: string[];
-}
-
-function groupIntoSections(insights: string[]): Section[] {
-  const sections: Section[] = [];
-  let current: Section | null = null;
-  for (const item of insights) {
-    if (item.startsWith("##")) {
-      if (current && current.items.length > 0) sections.push(current);
-      current = { title: item.slice(2), items: [] };
-    } else if (current) {
-      current.items.push(item);
-    } else {
-      // No section yet, create default
-      current = { title: "Overview", items: [item] };
-    }
-  }
-  if (current && current.items.length > 0) sections.push(current);
-  return sections;
-}
 
 export default function InsightsPage() {
   const [insights, setInsights] = useState<string[]>([]);
@@ -62,43 +39,30 @@ export default function InsightsPage() {
     );
   }
 
-  const sections = groupIntoSections(insights);
-
   return (
     <div className="space-y-5 pt-3 max-w-lg mx-auto">
       <div className="pixel-label text-center" style={{ fontSize: "10px" }}>✧ Insights ✧</div>
 
-      {sections.length > 0 ? (
-        sections.map((section, si) => (
-          <Window key={si} title={`✧ ${section.title} ✧`}>
-            <div className="space-y-3">
-              {section.items.map((insight, i) => {
-                const cat = categorize(insight);
-                const s = cardStyles[cat];
-                return (
-                  <div
-                    key={i}
-                    className="rounded-lg"
-                    style={{
-                      background: s.bg,
-                      border: `1.5px solid ${s.border}`,
-                      padding: "10px 12px",
-                    }}
-                  >
-                    <p className="text-xs leading-relaxed" style={{ color: s.accent }}>
-                      {insight}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </Window>
-        ))
-      ) : (
-        <Window title="🧠 Insights">
-          <p className="vt-text text-center py-4">Start logging food to get personalized feedback.</p>
-        </Window>
-      )}
+      <Window title="🧠 Your Analysis">
+        <div className="space-y-2">
+          {insights.map((item, i) => {
+            if (item.startsWith("##")) {
+              return (
+                <div key={i} className="pixel-label" style={{ fontSize: "8px", color: "#9b5de5", paddingTop: i > 0 ? 10 : 2, paddingBottom: 2 }}>
+                  {item.slice(2)}
+                </div>
+              );
+            }
+            const cat = categorize(item);
+            const c = cardColors[cat];
+            return (
+              <div key={i} className="rounded-md" style={{ background: c.bg, border: cat !== "neutral" ? `1px solid ${c.border}` : "none", padding: cat !== "neutral" ? "8px 10px" : "4px 0" }}>
+                <p className="text-xs leading-relaxed" style={{ color: c.color }}>{item}</p>
+              </div>
+            );
+          })}
+        </div>
+      </Window>
     </div>
   );
 }
