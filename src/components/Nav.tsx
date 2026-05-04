@@ -37,7 +37,7 @@ export default function Nav() {
                 <div className="dot dot-yellow" />
                 <div className="dot dot-green" />
               </div>
-              <span>NutriTracker</span>
+              <Link href="/" style={{ color: "white", textDecoration: "none" }}>NutriTracker</Link>
             </div>
             <button
               onClick={handleLogout}
@@ -71,9 +71,9 @@ export default function Nav() {
       {/* Mobile top bar */}
       <div className="sm:hidden relative z-20">
         <div className="flex items-center justify-between px-4 py-2" style={{ background: "linear-gradient(180deg, #c77dff, #9b5de5)", borderBottom: "2px solid #8855aa" }}>
-          <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: "9px", color: "white", textShadow: "1px 1px 0 rgba(0,0,0,0.3)" }}>
+          <Link href="/" style={{ fontFamily: "'Press Start 2P', monospace", fontSize: "9px", color: "white", textShadow: "1px 1px 0 rgba(0,0,0,0.3)", textDecoration: "none" }}>
             NutriTracker
-          </span>
+          </Link>
           <button
             onClick={handleLogout}
             style={{ fontSize: "9px", opacity: 0.8, background: "none", border: "none", color: "white", cursor: "pointer", fontFamily: "'Quicksand', sans-serif", fontWeight: 600 }}
