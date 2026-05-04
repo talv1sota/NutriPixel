@@ -360,7 +360,7 @@ export default function RecipesPage() {
                   </div>
                 </button>
                 <div className="flex gap-1">
-                  <button onClick={() => startEdit(r)} className="btn-blue btn-sm" style={{ fontSize: 9, padding: "3px 6px" }}>edit</button>
+                  {editId !== r.id && <button onClick={() => startEdit(r)} className="btn-blue btn-sm" style={{ fontSize: 9, padding: "3px 6px" }}>edit</button>}
                   <button onClick={() => del(r.id)} className="delete-btn">×</button>
                 </div>
               </div>
