@@ -26,47 +26,86 @@ export default function Nav() {
   };
 
   return (
-    <div className="relative z-20">
-      {/* Top bar */}
-      <div className="window" style={{ borderRadius: 0, border: "none", borderBottom: "2px solid #8855aa" }}>
-        <div className="window-title" style={{ borderRadius: 0 }}>
-          <div className="flex items-center gap-3">
-            <div className="decorations">
-              <div className="dot dot-red" />
-              <div className="dot dot-yellow" />
-              <div className="dot dot-green" />
+    <>
+      {/* Desktop top nav */}
+      <div className="relative z-20 hidden sm:block">
+        <div className="window" style={{ borderRadius: 0, border: "none", borderBottom: "2px solid #8855aa" }}>
+          <div className="window-title" style={{ borderRadius: 0 }}>
+            <div className="flex items-center gap-3">
+              <div className="decorations">
+                <div className="dot dot-red" />
+                <div className="dot dot-yellow" />
+                <div className="dot dot-green" />
+              </div>
+              <span>NutriTracker</span>
             </div>
-            <span>NutriTracker</span>
+            <button
+              onClick={handleLogout}
+              style={{ fontSize: "8px", opacity: 0.7, background: "none", border: "none", color: "white", cursor: "pointer" }}
+            >
+              logout ✧
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            style={{ fontSize: "8px", opacity: 0.7, background: "none", border: "none", color: "white", cursor: "pointer" }}
-          >
-            logout ✧
-          </button>
+
+          <div className="flex items-stretch justify-center py-3 px-4 bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50">
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`nav-tab ${pathname === link.href ? "active" : ""}`}
+              >
+                <span className="text-base">{link.icon}</span>
+                <span>{link.label}</span>
+              </Link>
+            ))}
+          </div>
         </div>
 
-        <div className="flex items-stretch overflow-x-auto py-3 px-2 bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50" style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+        <div className="bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 py-1 marquee-wrap">
+          <div className="marquee-inner text-xs font-bold text-purple-600">
+            ✦ &nbsp;&nbsp; &quot;Nothing tastes as good as skinny feels&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t diet. I just don&apos;t eat as much as I&apos;d like to&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;You&apos;re responsible for what you put in your body&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t think there&apos;s anything wrong with being thin&quot; — Naomi Campbell &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;The body achieves what the mind believes&quot; — Naomi Campbell &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Elegance is elimination&quot; — Cristóbal Balenciaga &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Discipline is the bridge between goals and accomplishment&quot; — Cindy Crawford &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Nothing tastes as good as skinny feels&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t diet. I just don&apos;t eat as much as I&apos;d like to&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t think there&apos;s anything wrong with being thin&quot; — Naomi Campbell &nbsp;&nbsp; ✦&nbsp;
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile top bar */}
+      <div className="sm:hidden relative z-20">
+        <div className="flex items-center justify-between px-4 py-2" style={{ background: "linear-gradient(180deg, #c77dff, #9b5de5)", borderBottom: "2px solid #8855aa" }}>
+          <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: "9px", color: "white", textShadow: "1px 1px 0 rgba(0,0,0,0.3)" }}>
+            NutriTracker
+          </span>
+          <button
+            onClick={handleLogout}
+            style={{ fontSize: "9px", opacity: 0.8, background: "none", border: "none", color: "white", cursor: "pointer", fontFamily: "'Quicksand', sans-serif", fontWeight: 600 }}
+          >
+            logout
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile bottom tab bar */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50" style={{ background: "#fff8ff", borderTop: "2px solid #d4b8e8", paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${links.length}, 1fr)` }}>
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={`nav-tab ${pathname === link.href ? "active" : ""}`}
-              style={{ flexShrink: 0 }}
+              className="flex flex-col items-center py-2 gap-0.5"
+              style={{
+                color: pathname === link.href ? "#e84d98" : "#9b80b8",
+                fontSize: "16px",
+                textDecoration: "none",
+                transition: "color 0.15s",
+              }}
             >
-              <span className="text-base">{link.icon}</span>
-              <span className="hidden sm:inline">{link.label}</span>
+              <span>{link.icon}</span>
+              <span style={{ fontSize: "7px", fontWeight: 700, fontFamily: "'Quicksand', sans-serif" }}>
+                {link.label}
+              </span>
             </Link>
           ))}
         </div>
       </div>
-
-      {/* Marquee */}
-      <div className="bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 py-1 marquee-wrap">
-        <div className="marquee-inner text-xs font-bold text-purple-600">
-          ✦ &nbsp;&nbsp; &quot;Nothing tastes as good as skinny feels&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t diet. I just don&apos;t eat as much as I&apos;d like to&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;You&apos;re responsible for what you put in your body&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t think there&apos;s anything wrong with being thin&quot; — Naomi Campbell &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;The body achieves what the mind believes&quot; — Naomi Campbell &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Elegance is elimination&quot; — Cristóbal Balenciaga &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Discipline is the bridge between goals and accomplishment&quot; — Cindy Crawford &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Nothing tastes as good as skinny feels&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t diet. I just don&apos;t eat as much as I&apos;d like to&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t think there&apos;s anything wrong with being thin&quot; — Naomi Campbell &nbsp;&nbsp; ✦&nbsp;
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

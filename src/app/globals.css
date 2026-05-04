@@ -230,21 +230,35 @@ option { background: white; color: #4a2d6b; }
   color: #7a5a9e;
   font-weight: 700;
   font-size: 13px;
-  padding: 0 14px;
-  transition: color 0.15s;
+  padding: 6px 12px;
+  transition: all 0.15s;
   text-decoration: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  border-right: 1px solid rgba(120, 90, 150, 0.2);
+  gap: 5px;
+  border-radius: 6px;
 }
 
-.nav-tab:last-child { border-right: none; }
+.nav-tab:hover { color: #9b5de5; background: rgba(155, 93, 229, 0.08); }
 
-.nav-tab:hover { color: #9b5de5; }
+.nav-tab.active {
+  color: #e84d98;
+  background: rgba(232, 77, 152, 0.1);
+}
 
-.nav-tab.active { color: #e84d98; }
+@media (max-width: 639px) {
+  .nav-tab { padding: 8px 10px; font-size: 12px; }
+  .nav-tab span.text-base { font-size: 18px; }
+  .window-title { font-size: 8px; padding: 7px 10px; }
+  .window-body { padding: 12px; }
+  .stat-box { padding: 8px; }
+  .stat-box .text-lg { font-size: 16px; }
+  .btn-pink, .btn-blue { font-size: 12px; padding: 8px 14px; }
+  .list-row { font-size: 12px; gap: 4px; }
+  .input, .select { font-size: 16px; padding: 10px 12px; } /* 16px prevents iOS zoom */
+  .dropdown-item { padding: 12px 14px; } /* bigger touch targets */
+}
 
 /* ============ DECORATIONS ============ */
 
