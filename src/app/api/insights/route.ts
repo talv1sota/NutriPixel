@@ -321,11 +321,11 @@ export async function GET() {
     if (weekExDays.length >= 3) {
       exInsights.push(`${weekExDays.length} exercise days this week (${totalBurnedWeek} kcal burned). Great consistency — regular movement improves insulin sensitivity, which helps your body burn fat instead of storing it.`);
     } else if (weekExDays.length > 0) {
-      exInsights.push(`${weekExDays.length} exercise day(s) this week (${totalBurnedWeek} kcal). Bumping to 3-4 days would make a noticeable difference — you're already doing the hard part by showing up.`);
+      exInsights.push(`${weekExDays.length} exercise day(s) this week (${totalBurnedWeek} kcal). Adding 1-2 more sessions would noticeably widen your weekly deficit.`);
     }
     if (totalBurnedMonth > 0) {
       const lbsFromEx = Math.round(totalBurnedMonth / 3500 * 10) / 10;
-      exInsights.push(`This month: ${exDays.length} active days, ${totalBurnedMonth} total kcal burned (~${lbsFromEx} lbs of deficit from exercise). ${exDays.length >= 8 ? "That's a meaningful contribution to your results." : "Doubling your exercise frequency would roughly double this."}`);
+      exInsights.push(`This month: ${exDays.length} active days, ${totalBurnedMonth} total kcal burned (~${lbsFromEx} lbs of deficit from exercise).${exDays.length < 8 ? ` Aiming for 3-4 days/week consistently would push this closer to ~1.5 lbs/month from exercise alone.` : ""}`);
     }
   }
   if (exInsights.length > 0) {
