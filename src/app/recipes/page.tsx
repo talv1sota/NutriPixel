@@ -45,6 +45,7 @@ export default function RecipesPage() {
   const [flash, setFlash] = useState("");
   const [error, setError] = useState("");
   const [manual, setManual] = useState({ ...emptyManual });
+  const [editId, setEditId] = useState<number | null>(null);
 
   const fetchRecipes = useCallback(async () => {
     const res = await fetch("/api/recipes");
@@ -128,6 +129,72 @@ export default function RecipesPage() {
     }
   };
 
+  const startEdit = (r: Recipe) => {
+    setEditId(r.id);
+    setManual({
+      title: r.title,
+      description: r.description || "",
+      servings: r.servings || "",
+      prepTime: r.prepTime || "",
+      cookTime: r.cookTime || "",
+      ingredients: r.ingredients,
+      instructions: r.instructions,
+      calories: r.calories != null ? String(r.calories) : "",
+      protein: r.protein != null ? String(r.protein) : "",
+      carbs: r.carbs != null ? String(r.carbs) : "",
+      fat: r.fat != null ? String(r.fat) : "",
+    });
+    setMode("manual");
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const saveManualOrEdit = async () => {
+    if (editId) {
+      if (!manual.title) { setError("Title is required"); return; }
+      setLoading(true);
+      setError("");
+      try {
+        const payload = {
+          id: editId,
+          title: manual.title,
+          description: manual.description || null,
+          servings: manual.servings || null,
+          prepTime: manual.prepTime || null,
+          cookTime: manual.cookTime || null,
+          ingredients: manual.ingredients.split("\n").map(s => s.trim()).filter(Boolean),
+          instructions: manual.instructions.split("\n").map(s => s.trim()).filter(Boolean),
+          calories: manual.calories ? parseFloat(manual.calories) : null,
+          protein: manual.protein ? parseFloat(manual.protein) : null,
+          carbs: manual.carbs ? parseFloat(manual.carbs) : null,
+          fat: manual.fat ? parseFloat(manual.fat) : null,
+        };
+        const res = await fetch("/api/recipes", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Save failed");
+        setManual({ ...emptyManual });
+        setEditId(null);
+        notify(`Updated ${payload.title}!`);
+        fetchRecipes();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      await saveManual();
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditId(null);
+    setManual({ ...emptyManual });
+    setError("");
+  };
+
   const del = async (id: number) => {
     await fetch(`/api/recipes?id=${id}`, { method: "DELETE" });
     if (open?.id === id) setOpen(null);
@@ -146,7 +213,7 @@ export default function RecipesPage() {
         </div>
       )}
 
-      <Window title="📖 Add Recipe">
+      <Window title={editId ? "📝 Edit Recipe" : "📖 Add Recipe"}>
         <div className="flex gap-2 mb-3">
           <button
             onClick={() => { setMode("url"); setError(""); }}
@@ -255,9 +322,16 @@ export default function RecipesPage() {
                   className="input" />
               </div>
             </div>
-            <button onClick={saveManual} disabled={loading} className="btn-pink w-full py-3">
-              ✧ Save Recipe ✧
-            </button>
+            <div className="flex gap-2">
+              <button onClick={saveManualOrEdit} disabled={loading} className="btn-pink flex-1 py-3">
+                {editId ? "✧ Update Recipe ✧" : "✧ Save Recipe ✧"}
+              </button>
+              {editId && (
+                <button onClick={cancelEdit} className="btn-blue py-3" style={{ padding: "0 16px" }}>
+                  Cancel
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -285,7 +359,10 @@ export default function RecipesPage() {
                     {r.calories != null && <span className="badge">{Math.round(r.calories)} kcal</span>}
                   </div>
                 </button>
-                <button onClick={() => del(r.id)} className="delete-btn">×</button>
+                <div className="flex gap-1">
+                  <button onClick={() => startEdit(r)} className="btn-blue btn-sm" style={{ fontSize: 9, padding: "3px 6px" }}>edit</button>
+                  <button onClick={() => del(r.id)} className="delete-btn">×</button>
+                </div>
               </div>
             ))}
           </div>

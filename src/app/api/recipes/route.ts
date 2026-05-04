@@ -53,6 +53,47 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(recipe);
 }
 
+export async function PUT(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await req.json();
+  if (!body.id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
+  const recipe = await prisma.recipe.findFirst({ where: { id: body.id, userId: session.userId } });
+  if (!recipe) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const ingredients = body.ingredients != null
+    ? (Array.isArray(body.ingredients) ? body.ingredients.join("\n") : String(body.ingredients))
+    : undefined;
+  const instructions = body.instructions != null
+    ? (Array.isArray(body.instructions) ? body.instructions.join("\n") : String(body.instructions))
+    : undefined;
+
+  const updated = await prisma.recipe.update({
+    where: { id: recipe.id },
+    data: {
+      ...(body.title != null && { title: body.title }),
+      ...(body.description !== undefined && { description: body.description || null }),
+      ...(body.sourceUrl !== undefined && { sourceUrl: body.sourceUrl || null }),
+      ...(body.image !== undefined && { image: body.image || null }),
+      ...(body.servings !== undefined && { servings: body.servings || null }),
+      ...(body.prepTime !== undefined && { prepTime: body.prepTime || null }),
+      ...(body.cookTime !== undefined && { cookTime: body.cookTime || null }),
+      ...(body.totalTime !== undefined && { totalTime: body.totalTime || null }),
+      ...(ingredients !== undefined && { ingredients }),
+      ...(instructions !== undefined && { instructions }),
+      ...(body.calories !== undefined && { calories: body.calories ?? null }),
+      ...(body.protein !== undefined && { protein: body.protein ?? null }),
+      ...(body.carbs !== undefined && { carbs: body.carbs ?? null }),
+      ...(body.fat !== undefined && { fat: body.fat ?? null }),
+      ...(body.fiber !== undefined && { fiber: body.fiber ?? null }),
+      ...(body.sugar !== undefined && { sugar: body.sugar ?? null }),
+    },
+  });
+  return NextResponse.json(updated);
+}
+
 export async function DELETE(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
