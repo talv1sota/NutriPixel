@@ -256,6 +256,65 @@ export async function GET() {
     }
   }
 
+  // ============ PROJECTION / TRAJECTORY ============
+  const currentWeight = weights.length > 0 ? weights[weights.length - 1].weight : null;
+  if (currentWeight && weekDays.length >= 3 && goal) {
+    const weekAvgNet = Math.round(weekDays.reduce((s, d) => s + d.net, 0) / weekDays.length);
+    const weekBurned = weekDays.reduce((s, d) => s + d.burned, 0);
+
+    // Estimate TDEE from goal profile or rough estimate
+    const heightIn = goal.height || 64;
+    const age = goal.age || 25;
+    const kg = currentWeight * 0.453592;
+    const cm = heightIn * 2.54;
+    const bmr = goal.gender === "male" ? 10 * kg + 6.25 * cm - 5 * age + 5 : 10 * kg + 6.25 * cm - 5 * age - 161;
+    const actMult: Record<string, number> = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9 };
+    const tdee = Math.round(bmr * (actMult[goal.activityLevel] || 1.2));
+
+    const dailyDeficit = tdee - weekAvgNet;
+    const weeklyDeficitCal = dailyDeficit * 7;
+    const projectedLbsPerWeek = Math.round((weeklyDeficitCal / 3500) * 10) / 10;
+
+    if (projectedLbsPerWeek > 0 && goal.targetWeight) {
+      const lbsToGo = currentWeight - goal.targetWeight;
+      if (lbsToGo > 0) {
+        const weeksToGoal = Math.round(lbsToGo / projectedLbsPerWeek);
+        const goalDate = new Date();
+        goalDate.setDate(goalDate.getDate() + weeksToGoal * 7);
+        const goalDateStr = goalDate.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+
+        if (projectedLbsPerWeek > 2.5) {
+          insights.push(`⚡ At your current pace (~${projectedLbsPerWeek} lbs/week), you'd hit ${goal.targetWeight} by ${goalDateStr}. But this rate is aggressive — losing more than 2 lbs/week increases muscle loss and makes rebound more likely. Consider slowing down slightly for more sustainable results.`);
+        } else if (projectedLbsPerWeek > 1) {
+          insights.push(`📍 Trajectory: at ~${projectedLbsPerWeek} lbs/week, you're on track to reach ${goal.targetWeight} around ${goalDateStr}. This is a healthy pace. Stay consistent and you'll get there.`);
+        } else if (projectedLbsPerWeek > 0.3) {
+          insights.push(`📍 Trajectory: ~${projectedLbsPerWeek} lbs/week puts your goal of ${goal.targetWeight} around ${goalDateStr}. Progress is real but slow. Adding 2-3 exercise sessions per week could nearly double your rate.`);
+        } else {
+          insights.push(`🐌 At current intake, you're barely in deficit (~${projectedLbsPerWeek} lbs/week). At this rate, reaching ${goal.targetWeight} would take ${weeksToGoal}+ weeks. Either reduce intake by 200-300 kcal/day or add consistent exercise to move the needle.`);
+        }
+      }
+    } else if (projectedLbsPerWeek <= 0) {
+      insights.push(`🚨 Based on this week's eating, you're at or above maintenance (~${tdee} kcal TDEE vs ~${weekAvgNet} net intake). Weight loss has stalled or will reverse if this continues. You need to either cut ~${Math.abs(Math.round(dailyDeficit))} kcal/day or burn more through exercise.`);
+    }
+
+    // Trend direction change detection
+    if (twoWeekWeights.length >= 3) {
+      const midpoint = Math.floor(twoWeekWeights.length / 2);
+      const firstHalf = twoWeekWeights.slice(0, midpoint);
+      const secondHalf = twoWeekWeights.slice(midpoint);
+      const firstAvg = firstHalf.reduce((s, w) => s + w.weight, 0) / firstHalf.length;
+      const secondAvg = secondHalf.reduce((s, w) => s + w.weight, 0) / secondHalf.length;
+      const firstTrend = firstHalf.length >= 2 ? firstHalf[firstHalf.length - 1].weight - firstHalf[0].weight : 0;
+      const secondTrend = secondHalf.length >= 2 ? secondHalf[secondHalf.length - 1].weight - secondHalf[0].weight : 0;
+
+      if (firstTrend < -0.3 && secondTrend > 0.1) {
+        insights.push(`📊 Your downward trend appears to be reversing — weight was dropping in the first half of the past 2 weeks but has ticked up recently. Check if your intake crept up or exercise dropped off. Early intervention now prevents a full stall.`);
+      } else if (firstTrend > 0.1 && secondTrend < -0.3) {
+        insights.push(`📊 Good news — after a slight uptick, your weight is trending down again. Whatever you adjusted is working. Keep this week's habits going.`);
+      }
+    }
+  }
+
   // ============ WEEKLY SUMMARY ============
   if (weekDays.length > 0) {
     const weekAvgNet = Math.round(weekDays.reduce((s, d) => s + d.net, 0) / weekDays.length);
