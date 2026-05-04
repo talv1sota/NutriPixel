@@ -322,7 +322,5 @@ export async function GET() {
     insights.push(`This week: averaging ${weekAvgCal} kcal eaten, ${weekAvgNet} net after exercise, across ${weekDays.length} logged days.`);
   }
 
-  const days30 = allDays.map(d => ({ date: d.date, net: Math.round(d.net), calories: Math.round(d.calories), burned: d.burned }));
-
-  return NextResponse.json({ insights, days: days30 });
+  return NextResponse.json({ insights });
 }
