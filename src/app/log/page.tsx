@@ -107,9 +107,15 @@ export default function LogPage() {
         successMsg = `Logged ${s} × ${selected.recipe.title}!`;
       }
       if (!res.ok) {
-        const err = await res.text().catch(() => "");
-        flashMsg = `✗ Save failed (${res.status})${err ? ": " + err.slice(0, 80) : ""}`;
-        flashMs = 6000;
+        let detail = "";
+        try {
+          const body = await res.json();
+          if (body && typeof body.error === "string") detail = body.error;
+        } catch {
+          detail = await res.text().catch(() => "");
+        }
+        flashMsg = `✗ Save failed (${res.status})${detail ? ": " + detail.slice(0, 120) : ""}`;
+        flashMs = 8000;
       } else {
         flashMsg = successMsg;
         setSelected(null);

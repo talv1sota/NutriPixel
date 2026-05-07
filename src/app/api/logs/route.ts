@@ -19,18 +19,33 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
-  const log = await prisma.foodLog.create({
-    data: {
-      userId: session.userId,
-      foodId: body.foodId,
-      amount: body.amount,
-      meal: body.meal,
-      date: body.date,
-    },
-    include: { food: true },
-  });
-  return NextResponse.json(log);
+  try {
+    const body = await req.json();
+    if (typeof body.foodId !== "number") {
+      return NextResponse.json({ error: `Invalid foodId: ${JSON.stringify(body.foodId)}` }, { status: 400 });
+    }
+    if (typeof body.amount !== "number" || !isFinite(body.amount) || body.amount <= 0) {
+      return NextResponse.json({ error: `Invalid amount: ${JSON.stringify(body.amount)}` }, { status: 400 });
+    }
+    if (!body.meal || !body.date) {
+      return NextResponse.json({ error: `Missing meal or date` }, { status: 400 });
+    }
+    const log = await prisma.foodLog.create({
+      data: {
+        userId: session.userId,
+        foodId: body.foodId,
+        amount: body.amount,
+        meal: body.meal,
+        date: body.date,
+      },
+      include: { food: true },
+    });
+    return NextResponse.json(log);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[/api/logs POST] failed:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest) {
