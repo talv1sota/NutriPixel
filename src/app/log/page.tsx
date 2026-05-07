@@ -8,6 +8,7 @@ interface Food {
   id: number; name: string; brand: string | null;
   calories: number; protein: number; carbs: number; fat: number;
   fiber: number; sugar: number; serving: number; unit: string;
+  userId: number | null; // null = global; non-null = this user's custom food
 }
 
 interface Recipe {
@@ -33,8 +34,11 @@ export default function LogPage() {
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState("");
   const [showCustom, setShowCustom] = useState(false);
+  const [showManage, setShowManage] = useState(false);
   const [custom, setCustom] = useState({ name: "", calories: "", protein: "", carbs: "", fat: "", serving: "" });
   const ref = useRef<HTMLInputElement>(null);
+
+  const myFoods = foods.filter(f => f.userId !== null);
 
   useEffect(() => {
     fetch("/api/foods").then(r => r.json()).then(setFoods);
@@ -180,6 +184,33 @@ export default function LogPage() {
     setTimeout(() => setFlash(""), flashMs);
   };
 
+  const handleDeleteFood = async (food: Food, force = false) => {
+    const url = `/api/foods?id=${food.id}${force ? "&force=1" : ""}`;
+    try {
+      const res = await fetch(url, { method: "DELETE" });
+      if (res.status === 409 && !force) {
+        const body = await res.json().catch(() => ({}));
+        const count = body?.logCount ?? "some";
+        if (confirm(`"${food.name}" has ${count} log entries. Delete the food AND those logs?`)) {
+          return handleDeleteFood(food, true);
+        }
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setFlash(`✗ Delete failed (${res.status})${body?.error ? ": " + String(body.error).slice(0, 120) : ""}`);
+        setTimeout(() => setFlash(""), 6000);
+        return;
+      }
+      setFoods(prev => prev.filter(f => f.id !== food.id));
+      setFlash(`Removed ${food.name}`);
+      setTimeout(() => setFlash(""), 2500);
+    } catch (e) {
+      setFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`);
+      setTimeout(() => setFlash(""), 6000);
+    }
+  };
+
   return (
     <div className="space-y-5 pt-3 max-w-lg mx-auto">
       <div className="pixel-label text-center" style={{ fontSize: "10px" }}>✧ Log Food ✧</div>
@@ -322,11 +353,45 @@ export default function LogPage() {
         </Window>
       )}
 
-      <div className="text-center">
+      <div className="text-center flex justify-center gap-2 flex-wrap">
         <button onClick={() => setShowCustom(!showCustom)} className="btn-blue btn-sm">
           {showCustom ? "cancel" : "✧ Quick Add Custom Food ✧"}
         </button>
+        {myFoods.length > 0 && (
+          <button onClick={() => setShowManage(!showManage)} className="btn-blue btn-sm">
+            {showManage ? "hide" : `✧ My Foods (${myFoods.length}) ✧`}
+          </button>
+        )}
       </div>
+
+      {showManage && myFoods.length > 0 && (
+        <Window title="✧ My Custom Foods">
+          <p className="text-xs mb-2" style={{ color: "#9b80b8" }}>
+            Foods you added. Removing one with existing logs will ask before deleting those logs.
+          </p>
+          <div className="space-y-1" style={{ maxHeight: 360, overflowY: "auto" }}>
+            {myFoods
+              .slice()
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map(food => (
+                <div key={`mine-${food.id}`} className="list-row">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">{food.name}</div>
+                    <div className="text-[10px]" style={{ color: "#9b80b8" }}>
+                      {food.brand && food.brand !== "Custom" ? `${food.brand} · ` : ""}
+                      {Math.round(food.calories * food.serving / 100)} kcal / {food.serving}{food.unit}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteFood(food)}
+                    className="delete-btn"
+                    title="Remove this food"
+                  >×</button>
+                </div>
+              ))}
+          </div>
+        </Window>
+      )}
 
       {showCustom && (
         <Window title="✧ Custom Food">

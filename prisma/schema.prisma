@@ -19,6 +19,7 @@ model User {
   exercises    Exercise[]
   recipes      Recipe[]
   moodEntries  MoodEntry[]
+  customFoods  Food[]
 }
 
 model Food {
@@ -33,6 +34,9 @@ model Food {
   sugar    Float     @default(0) // per 100g
   serving  Float     @default(100) // default serving size in grams
   unit     String    @default("g")
+  // null = global (seed/built-in); non-null = user-added custom food
+  userId   Int?
+  user     User?     @relation(fields: [userId], references: [id])
   logs     FoodLog[]
 }
 
