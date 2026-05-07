@@ -266,6 +266,9 @@ export default function Dashboard() {
                     <span className="font-semibold">
                       {log.food.brand === "Recipe" ? log.food.name.replace(/ \(recipe\)$/, "") : log.food.name}
                     </span>
+                    {log.food.brand && log.food.brand !== "Recipe" && log.food.brand !== "Generic" && (
+                      <span className="text-xs ml-2" style={{ color: "#9b80b8" }}>{log.food.brand}</span>
+                    )}
                     <span className="badge ml-2">
                       {log.food.brand === "Recipe"
                         ? `${log.amount / 100} serving${log.amount === 100 ? "" : "s"}`

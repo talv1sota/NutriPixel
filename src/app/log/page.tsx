@@ -83,59 +83,95 @@ export default function LogPage() {
   const handleLog = async () => {
     if (!selected) return;
     setSaving(true);
-    if (selected.kind === "food") {
-      if (!amount) { setSaving(false); return; }
-      await fetch("/api/logs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ foodId: selected.food.id, amount: parseFloat(amount), meal, date }),
-      });
-      setFlash(`Logged ${selected.food.name}!`);
-    } else {
-      const s = parseFloat(servings);
-      if (!s) { setSaving(false); return; }
-      await fetch("/api/logs/recipe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipeId: selected.recipe.id, servings: s, meal, date }),
-      });
-      setFlash(`Logged ${s} × ${selected.recipe.title}!`);
+    let flashMsg = "";
+    let flashMs = 2500;
+    try {
+      let res: Response;
+      let successMsg: string;
+      if (selected.kind === "food") {
+        if (!amount) { setSaving(false); return; }
+        res = await fetch("/api/logs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ foodId: selected.food.id, amount: parseFloat(amount), meal, date }),
+        });
+        successMsg = `Logged ${selected.food.name}!`;
+      } else {
+        const s = parseFloat(servings);
+        if (!s) { setSaving(false); return; }
+        res = await fetch("/api/logs/recipe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recipeId: selected.recipe.id, servings: s, meal, date }),
+        });
+        successMsg = `Logged ${s} × ${selected.recipe.title}!`;
+      }
+      if (!res.ok) {
+        const err = await res.text().catch(() => "");
+        flashMsg = `✗ Save failed (${res.status})${err ? ": " + err.slice(0, 80) : ""}`;
+        flashMs = 6000;
+      } else {
+        flashMsg = successMsg;
+        setSelected(null);
+        setAmount("");
+        setServings("1");
+      }
+    } catch (e) {
+      flashMsg = `✗ Network error: ${e instanceof Error ? e.message : "unknown"}`;
+      flashMs = 6000;
     }
+    setFlash(flashMsg);
     setSaving(false);
-    setSelected(null);
-    setAmount("");
-    setServings("1");
-    setTimeout(() => setFlash(""), 2500);
+    setTimeout(() => setFlash(""), flashMs);
     ref.current?.focus();
   };
 
   const handleCustomLog = async () => {
     if (!custom.name || !custom.calories) return;
     setSaving(true);
-    const res = await fetch("/api/foods", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: custom.name,
-        calories: parseFloat(custom.calories) * 100 / (parseFloat(custom.serving) || 100),
-        protein: (parseFloat(custom.protein) || 0) * 100 / (parseFloat(custom.serving) || 100),
-        carbs: (parseFloat(custom.carbs) || 0) * 100 / (parseFloat(custom.serving) || 100),
-        fat: (parseFloat(custom.fat) || 0) * 100 / (parseFloat(custom.serving) || 100),
-        serving: parseFloat(custom.serving) || 100,
-      }),
-    });
-    const food = await res.json();
-    await fetch("/api/logs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ foodId: food.id, amount: parseFloat(custom.serving) || 100, meal, date }),
-    });
-    setFlash(`Logged ${custom.name}!`);
-    setCustom({ name: "", calories: "", protein: "", carbs: "", fat: "", serving: "" });
-    setShowCustom(false);
+    let flashMsg = "";
+    let flashMs = 2500;
+    try {
+      const res = await fetch("/api/foods", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: custom.name,
+          calories: parseFloat(custom.calories) * 100 / (parseFloat(custom.serving) || 100),
+          protein: (parseFloat(custom.protein) || 0) * 100 / (parseFloat(custom.serving) || 100),
+          carbs: (parseFloat(custom.carbs) || 0) * 100 / (parseFloat(custom.serving) || 100),
+          fat: (parseFloat(custom.fat) || 0) * 100 / (parseFloat(custom.serving) || 100),
+          serving: parseFloat(custom.serving) || 100,
+        }),
+      });
+      if (!res.ok) {
+        flashMsg = `✗ Could not create food (${res.status})`;
+        flashMs = 6000;
+      } else {
+        const food = await res.json();
+        const logRes = await fetch("/api/logs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ foodId: food.id, amount: parseFloat(custom.serving) || 100, meal, date }),
+        });
+        if (!logRes.ok) {
+          flashMsg = `✗ Food saved but log failed (${logRes.status})`;
+          flashMs = 6000;
+          setFoods(prev => [...prev, food]);
+        } else {
+          flashMsg = `Logged ${custom.name}!`;
+          setCustom({ name: "", calories: "", protein: "", carbs: "", fat: "", serving: "" });
+          setShowCustom(false);
+          setFoods(prev => [...prev, food]);
+        }
+      }
+    } catch (e) {
+      flashMsg = `✗ Network error: ${e instanceof Error ? e.message : "unknown"}`;
+      flashMs = 6000;
+    }
+    setFlash(flashMsg);
     setSaving(false);
-    setFoods(prev => [...prev, food]);
-    setTimeout(() => setFlash(""), 2500);
+    setTimeout(() => setFlash(""), flashMs);
   };
 
   return (
@@ -143,9 +179,9 @@ export default function LogPage() {
       <div className="pixel-label text-center" style={{ fontSize: "10px" }}>✧ Log Food ✧</div>
 
       {flash && (
-        <div className="window slidein" style={{ borderColor: "#6bcb77" }}>
-          <div className="window-body text-center font-bold" style={{ color: "#2d8a4e", padding: "10px" }}>
-            ✦ {flash} ✦
+        <div className="window slidein" style={{ borderColor: flash.startsWith("✗") ? "#e84d6a" : "#6bcb77" }}>
+          <div className="window-body text-center font-bold" style={{ color: flash.startsWith("✗") ? "#a8264a" : "#2d8a4e", padding: "10px" }}>
+            {flash.startsWith("✗") ? flash : `✦ ${flash} ✦`}
           </div>
         </div>
       )}
