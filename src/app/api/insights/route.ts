@@ -83,6 +83,8 @@ export async function GET() {
   const targetProtein = goal?.targetProtein ?? goal?.minProtein ?? null;
   const weekFrom = dateNDaysAgo(6);
   const weekDays = allDays.filter(d => d.date >= weekFrom);
+  // Today is in progress; exclude from retrospective averages/pattern checks.
+  const pastWeekDays = weekDays.filter(d => d.date < to);
 
   const insights: string[] = [];
 
@@ -126,8 +128,8 @@ export async function GET() {
 
     if (Math.abs(diff) <= 0.5 && daySpan >= 7) {
       // Plateau — dig into why
-      const avgCarbs = weekDays.length > 0 ? Math.round(weekDays.reduce((s, d) => s + d.carbs, 0) / weekDays.length) : 0;
-      const avgNet = weekDays.length > 0 ? Math.round(weekDays.reduce((s, d) => s + d.net, 0) / weekDays.length) : 0;
+      const avgCarbs = pastWeekDays.length > 0 ? Math.round(pastWeekDays.reduce((s, d) => s + d.carbs, 0) / pastWeekDays.length) : 0;
+      const avgNet = pastWeekDays.length > 0 ? Math.round(pastWeekDays.reduce((s, d) => s + d.net, 0) / pastWeekDays.length) : 0;
       let reason = `Your weight has been flat for ${daySpan} days (${first.weight} → ${last.weight}).`;
 
       if (avgNet < 800) {
@@ -140,7 +142,7 @@ export async function GET() {
       weight(reason);
     } else if (diff > 0.5) {
       // Went up
-      const highCarbDays = weekDays.filter(d => d.carbs > 100);
+      const highCarbDays = pastWeekDays.filter(d => d.carbs > 100);
       let reason = `Scale went up ${diff} lbs recently.`;
       if (highCarbDays.length > 0) {
         reason += ` You had ${highCarbDays.length} higher-carb day(s) (${highCarbDays.map(d => dayName(d.date)).join(", ")}). Each 100g of stored glycogen holds ~300g of water. This is water weight, not fat gain — it'll come off in 2-3 days of normal eating.`;
@@ -169,9 +171,9 @@ export async function GET() {
 
   // ============ EATING PATTERNS ============
   const eating = section("Eating Patterns");
-  if (weekDays.length >= 3) {
+  if (pastWeekDays.length >= 3) {
     // Detect feast/famine cycling
-    const sorted = [...weekDays].sort((a, b) => a.net - b.net);
+    const sorted = [...pastWeekDays].sort((a, b) => a.net - b.net);
     const lowest = sorted[0];
     const highest = sorted[sorted.length - 1];
     const range = highest.net - lowest.net;
@@ -179,9 +181,9 @@ export async function GET() {
     if (range > 800) {
       // Check if high follows low or vice versa
       let cycles = 0;
-      for (let i = 1; i < weekDays.length; i++) {
-        const prev = weekDays[i - 1].net;
-        const curr = weekDays[i].net;
+      for (let i = 1; i < pastWeekDays.length; i++) {
+        const prev = pastWeekDays[i - 1].net;
+        const curr = pastWeekDays[i].net;
         if ((prev < 500 && curr > 1000) || (prev > 1000 && curr < 500)) cycles++;
       }
 
@@ -193,7 +195,7 @@ export async function GET() {
     }
 
     // Check for days that are dangerously low
-    const subMinDays = weekDays.filter(d => d.calories > 0 && d.calories < 400);
+    const subMinDays = pastWeekDays.filter(d => d.calories > 0 && d.calories < 400);
     if (subMinDays.length >= 2) {
       eating(`${subMinDays.length} days this week under 400 kcal. Under-fueling this much suppresses thyroid function (T3 drops), increases cortisol, and promotes muscle breakdown. Even on a cut, 800 kcal should be the floor. Your body doesn't distinguish between "dieting" and "starving" — it just slows everything down to survive.`);
     }
@@ -201,7 +203,8 @@ export async function GET() {
 
   // ============ MACRO DEEP DIVE ============
   const macros = section("Macros");
-  const days7 = weekDays.length > 0 ? weekDays : allDays.slice(-7);
+  const pastAllDays = allDays.filter(d => d.date < to);
+  const days7 = pastWeekDays.length > 0 ? pastWeekDays : pastAllDays.slice(-7);
   if (days7.length > 0) {
     const avgP = Math.round(days7.reduce((s, d) => s + d.protein, 0) / days7.length);
     const avgC = Math.round(days7.reduce((s, d) => s + d.carbs, 0) / days7.length);
@@ -336,9 +339,9 @@ export async function GET() {
   // ============ PROJECTION / TRAJECTORY ============
   const trajectory = section("Trajectory");
   const currentWeight = weights.length > 0 ? weights[weights.length - 1].weight : null;
-  if (currentWeight && weekDays.length >= 3 && goal) {
-    const weekAvgNet = Math.round(weekDays.reduce((s, d) => s + d.net, 0) / weekDays.length);
-    const weekBurned = weekDays.reduce((s, d) => s + d.burned, 0);
+  if (currentWeight && pastWeekDays.length >= 3 && goal) {
+    const weekAvgNet = Math.round(pastWeekDays.reduce((s, d) => s + d.net, 0) / pastWeekDays.length);
+    const weekBurned = pastWeekDays.reduce((s, d) => s + d.burned, 0);
 
     // Estimate TDEE from goal profile or rough estimate
     const heightIn = goal.height || 64;
@@ -395,10 +398,10 @@ export async function GET() {
 
   // ============ WEEKLY SUMMARY ============
   const weekly = section("This Week");
-  if (weekDays.length > 0) {
-    const weekAvgNet = Math.round(weekDays.reduce((s, d) => s + d.net, 0) / weekDays.length);
-    const weekAvgCal = Math.round(weekDays.reduce((s, d) => s + d.calories, 0) / weekDays.length);
-    weekly(`This week: averaging ${weekAvgCal} kcal eaten, ${weekAvgNet} net after exercise, across ${weekDays.length} logged days.`);
+  if (pastWeekDays.length > 0) {
+    const weekAvgNet = Math.round(pastWeekDays.reduce((s, d) => s + d.net, 0) / pastWeekDays.length);
+    const weekAvgCal = Math.round(pastWeekDays.reduce((s, d) => s + d.calories, 0) / pastWeekDays.length);
+    weekly(`This week so far: averaging ${weekAvgCal} kcal eaten, ${weekAvgNet} net after exercise, across ${pastWeekDays.length} completed day${pastWeekDays.length === 1 ? "" : "s"} (today still in progress).`);
   }
 
   return NextResponse.json({ insights });
