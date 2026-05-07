@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Avoid include on create — Neon HTTP adapter rejects the implicit transaction.
   const log = await prisma.foodLog.create({
     data: {
       userId: session.userId,
@@ -65,7 +66,6 @@ export async function POST(req: NextRequest) {
       meal,
       date,
     },
-    include: { food: true },
   });
-  return NextResponse.json(log);
+  return NextResponse.json({ ...log, food });
 }

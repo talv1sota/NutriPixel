@@ -30,6 +30,8 @@ export async function POST(req: NextRequest) {
     if (!body.meal || !body.date) {
       return NextResponse.json({ error: `Missing meal or date` }, { status: 400 });
     }
+    // Note: avoid `include` on create — Prisma 6 wraps it in a transaction,
+    // which the Neon HTTP adapter rejects. Re-fetch the food separately.
     const log = await prisma.foodLog.create({
       data: {
         userId: session.userId,
@@ -38,9 +40,9 @@ export async function POST(req: NextRequest) {
         meal: body.meal,
         date: body.date,
       },
-      include: { food: true },
     });
-    return NextResponse.json(log);
+    const food = await prisma.food.findUnique({ where: { id: log.foodId } });
+    return NextResponse.json({ ...log, food });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[/api/logs POST] failed:", msg);
