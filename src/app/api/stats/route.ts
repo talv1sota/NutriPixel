@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { resolveFood } from "@/lib/foodLogs";
 
 function dateNDaysAgo(n: number) {
   const d = new Date();
@@ -61,11 +62,12 @@ async function computeWindow(userId: number, days: number, tdee: number | null, 
   for (const log of logs) {
     const day = byDate.get(log.date);
     if (!day) continue;
+    const food = resolveFood(log);
     const factor = log.amount / 100;
-    day.calories += log.food.calories * factor;
-    day.protein += log.food.protein * factor;
-    day.carbs += log.food.carbs * factor;
-    day.fat += log.food.fat * factor;
+    day.calories += food.calories * factor;
+    day.protein += food.protein * factor;
+    day.carbs += food.carbs * factor;
+    day.fat += food.fat * factor;
     day.hasLogs = true;
   }
 

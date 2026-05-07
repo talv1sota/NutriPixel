@@ -7,8 +7,7 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const search = req.nextUrl.searchParams.get("q") || "";
-  // Visibility: global foods (userId IS NULL) + this user's custom foods.
-  // Exclude shadow foods created to back recipe logs.
+  // Visibility: global foods + this user's custom foods. Skip shadow Recipe rows.
   const visibility = {
     AND: [
       { NOT: { brand: "Recipe" } },
@@ -69,22 +68,33 @@ export async function DELETE(req: NextRequest) {
     const food = await prisma.food.findUnique({ where: { id } });
     if (!food) return NextResponse.json({ error: "Food not found" }, { status: 404 });
     if (food.userId !== session.userId) {
-      return NextResponse.json({ error: "Cannot delete a global or another user's food" }, { status: 403 });
+      return NextResponse.json({ error: "Cannot remove a global or another user's food" }, { status: 403 });
     }
 
-    const force = req.nextUrl.searchParams.get("force") === "1";
-    const refs = await prisma.foodLog.count({ where: { foodId: id } });
-    if (refs > 0 && !force) {
-      return NextResponse.json(
-        { error: `This food has ${refs} log entries. Add ?force=1 to delete it and its logs.`, logCount: refs },
-        { status: 409 },
-      );
-    }
-    if (refs > 0) {
-      await prisma.foodLog.deleteMany({ where: { foodId: id } });
+    // Snapshot the food's macros onto every log that references it, then null
+    // out foodId so we can hard-delete without breaking the FK. Each log keeps
+    // its original macros forever — independent of the live Food table.
+    const refs = await prisma.foodLog.findMany({ where: { foodId: id }, select: { id: true } });
+    for (const r of refs) {
+      await prisma.foodLog.update({
+        where: { id: r.id },
+        data: {
+          foodId: null,
+          snapshotName: food.name,
+          snapshotBrand: food.brand,
+          snapshotCalories: food.calories,
+          snapshotProtein: food.protein,
+          snapshotCarbs: food.carbs,
+          snapshotFat: food.fat,
+          snapshotFiber: food.fiber,
+          snapshotSugar: food.sugar,
+          snapshotServing: food.serving,
+          snapshotUnit: food.unit,
+        },
+      });
     }
     await prisma.food.delete({ where: { id } });
-    return NextResponse.json({ success: true, deletedLogs: refs });
+    return NextResponse.json({ success: true, snapshotted: refs.length });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[/api/foods DELETE] failed:", msg);

@@ -184,26 +184,17 @@ export default function LogPage() {
     setTimeout(() => setFlash(""), flashMs);
   };
 
-  const handleDeleteFood = async (food: Food, force = false) => {
-    const url = `/api/foods?id=${food.id}${force ? "&force=1" : ""}`;
+  const handleDeleteFood = async (food: Food) => {
     try {
-      const res = await fetch(url, { method: "DELETE" });
-      if (res.status === 409 && !force) {
-        const body = await res.json().catch(() => ({}));
-        const count = body?.logCount ?? "some";
-        if (confirm(`"${food.name}" has ${count} log entries. Delete the food AND those logs?`)) {
-          return handleDeleteFood(food, true);
-        }
-        return;
-      }
+      const res = await fetch(`/api/foods?id=${food.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setFlash(`✗ Delete failed (${res.status})${body?.error ? ": " + String(body.error).slice(0, 120) : ""}`);
+        setFlash(`✗ Remove failed (${res.status})${body?.error ? ": " + String(body.error).slice(0, 120) : ""}`);
         setTimeout(() => setFlash(""), 6000);
         return;
       }
       setFoods(prev => prev.filter(f => f.id !== food.id));
-      setFlash(`Removed ${food.name}`);
+      setFlash(`Hid ${food.name} (existing logs kept)`);
       setTimeout(() => setFlash(""), 2500);
     } catch (e) {
       setFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`);
@@ -367,7 +358,7 @@ export default function LogPage() {
       {showManage && myFoods.length > 0 && (
         <Window title="✧ My Custom Foods">
           <p className="text-xs mb-2" style={{ color: "#9b80b8" }}>
-            Foods you added. Removing one with existing logs will ask before deleting those logs.
+            Foods you added. Removing hides one from search; existing logs stay intact with their original macros.
           </p>
           <div className="space-y-1" style={{ maxHeight: 360, overflowY: "auto" }}>
             {myFoods

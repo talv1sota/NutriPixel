@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { resolveFood } from "@/lib/foodLogs";
 
 function dateNDaysAgo(n: number) {
   const d = new Date();
@@ -78,7 +79,8 @@ export async function GET() {
     prisma.goal.findFirst({ where: { userId: session.userId } }),
   ]);
 
-  const allDays = buildDays(logs, exercises);
+  const resolvedLogs = logs.map(l => ({ date: l.date, amount: l.amount, food: resolveFood(l) }));
+  const allDays = buildDays(resolvedLogs, exercises);
   const targetCal = goal?.targetCalories ?? null;
   const targetProtein = goal?.targetProtein ?? goal?.minProtein ?? null;
   const weekFrom = dateNDaysAgo(6);
@@ -246,13 +248,14 @@ export async function GET() {
   // Build per-food stats with protein info
   const foodStats = new Map<string, { totalCal: number; totalProtein: number; count: number }>();
   for (const log of logs) {
-    const cal = log.food.calories * log.amount / 100;
-    const pro = log.food.protein * log.amount / 100;
-    const cur = foodStats.get(log.food.name) || { totalCal: 0, totalProtein: 0, count: 0 };
+    const food = resolveFood(log);
+    const cal = food.calories * log.amount / 100;
+    const pro = food.protein * log.amount / 100;
+    const cur = foodStats.get(food.name) || { totalCal: 0, totalProtein: 0, count: 0 };
     cur.totalCal += cal;
     cur.totalProtein += pro;
     cur.count += 1;
-    foodStats.set(log.food.name, cur);
+    foodStats.set(food.name, cur);
   }
 
   // Separate foods by protein efficiency: cal per gram of protein

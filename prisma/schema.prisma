@@ -44,12 +44,26 @@ model FoodLog {
   id        Int      @id @default(autoincrement())
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
-  foodId    Int
-  food      Food     @relation(fields: [foodId], references: [id])
+  // Nullable so a Food can be hard-deleted without breaking historical logs.
+  foodId    Int?
+  food      Food?    @relation(fields: [foodId], references: [id])
   amount    Float    // in grams
   meal      String   // breakfast, lunch, dinner, snack
   date      String   // YYYY-MM-DD
   createdAt DateTime @default(now())
+  // Snapshot of macros at delete time. Populated only when the referenced
+  // Food row is removed; until then, food.* is the source of truth (so live
+  // edits to a food still propagate to historical logs that share its id).
+  snapshotName     String?
+  snapshotBrand    String?
+  snapshotCalories Float?
+  snapshotProtein  Float?
+  snapshotCarbs    Float?
+  snapshotFat      Float?
+  snapshotFiber    Float?
+  snapshotSugar    Float?
+  snapshotServing  Float?
+  snapshotUnit     String?
 }
 
 model WeightEntry {

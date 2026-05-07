@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+import { resolveFood } from "@/lib/foodLogs";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
     include: { food: true },
     orderBy: { createdAt: "asc" },
   });
-  return NextResponse.json(logs);
+  return NextResponse.json(logs.map(l => ({ ...l, food: resolveFood(l) })));
 }
 
 export async function POST(req: NextRequest) {
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
         date: body.date,
       },
     });
-    const food = await prisma.food.findUnique({ where: { id: log.foodId } });
+    const food = await prisma.food.findUnique({ where: { id: body.foodId } });
     return NextResponse.json({ ...log, food });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
