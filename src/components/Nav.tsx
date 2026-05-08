@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+const QUOTES_HIDDEN_KEY = "nav.quotesHidden";
 
 const links = [
   { href: "/", label: "Home", icon: "🏠" },
@@ -18,6 +21,17 @@ const links = [
 export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
+  const [quotesHidden, setQuotesHidden] = useState(false);
+
+  useEffect(() => {
+    setQuotesHidden(localStorage.getItem(QUOTES_HIDDEN_KEY) === "1");
+  }, []);
+
+  const setHidden = (h: boolean) => {
+    setQuotesHidden(h);
+    if (h) localStorage.setItem(QUOTES_HIDDEN_KEY, "1");
+    else localStorage.removeItem(QUOTES_HIDDEN_KEY);
+  };
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -61,11 +75,44 @@ export default function Nav() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 py-1 marquee-wrap">
-          <div className="marquee-inner text-xs font-bold text-purple-600">
-            ✦ &nbsp;&nbsp; &quot;Nothing tastes as good as skinny feels&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t diet. I just don&apos;t eat as much as I&apos;d like to&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;You&apos;re responsible for what you put in your body&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t think there&apos;s anything wrong with being thin&quot; — Naomi Campbell &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;The body achieves what the mind believes&quot; — Naomi Campbell &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Elegance is elimination&quot; — Cristóbal Balenciaga &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Discipline is the bridge between goals and accomplishment&quot; — Cindy Crawford &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Nothing tastes as good as skinny feels&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t diet. I just don&apos;t eat as much as I&apos;d like to&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t think there&apos;s anything wrong with being thin&quot; — Naomi Campbell &nbsp;&nbsp; ✦&nbsp;
+        {quotesHidden ? (
+          <button
+            onClick={() => setHidden(false)}
+            aria-label="Show quotes"
+            title="Show quotes"
+            className="block w-full bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200"
+            style={{ height: 5, border: "none", padding: 0, cursor: "pointer", opacity: 0.55 }}
+          />
+        ) : (
+          <div className="relative bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 py-1 marquee-wrap">
+            <div className="marquee-inner text-xs font-bold text-purple-600" style={{ paddingRight: 28 }}>
+              ✦ &nbsp;&nbsp; &quot;Nothing tastes as good as skinny feels&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t diet. I just don&apos;t eat as much as I&apos;d like to&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;You&apos;re responsible for what you put in your body&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t think there&apos;s anything wrong with being thin&quot; — Naomi Campbell &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;The body achieves what the mind believes&quot; — Naomi Campbell &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Elegance is elimination&quot; — Cristóbal Balenciaga &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Discipline is the bridge between goals and accomplishment&quot; — Cindy Crawford &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;Nothing tastes as good as skinny feels&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t diet. I just don&apos;t eat as much as I&apos;d like to&quot; — Kate Moss &nbsp;&nbsp; ✦ &nbsp;&nbsp; &quot;I don&apos;t think there&apos;s anything wrong with being thin&quot; — Naomi Campbell &nbsp;&nbsp; ✦&nbsp;
+            </div>
+            <button
+              onClick={() => setHidden(true)}
+              aria-label="Hide quotes"
+              title="Hide quotes"
+              className="absolute top-1/2 right-2 -translate-y-1/2"
+              style={{
+                fontSize: 11,
+                lineHeight: 1,
+                color: "#7c3aed",
+                background: "rgba(255,255,255,0.75)",
+                border: "1px solid rgba(124,58,237,0.35)",
+                borderRadius: 999,
+                width: 16,
+                height: 16,
+                cursor: "pointer",
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              ×
+            </button>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Mobile top bar */}
