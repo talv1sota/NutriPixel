@@ -282,9 +282,10 @@ export async function GET() {
 
   if (proteinMVPs.length > 0) {
     const items = proteinMVPs.map(([name, v]) => {
-      const avgP = Math.round(v.totalProtein / v.count);
-      const avgC = Math.round(v.totalCal / v.count);
-      return `${name} (${avgP}g protein / ${avgC} kcal)`;
+      const avgP = v.totalProtein / v.count;
+      const avgC = v.totalCal / v.count;
+      const pPer100Cal = avgC > 0 ? (avgP / avgC) * 100 : 0;
+      return `${name} (${pPer100Cal.toFixed(1)}g protein / 100 kcal)`;
     }).join("; ");
     foods(`Your best protein-per-calorie foods: ${items}. These are your MVPs — lean, high-protein, and efficient. Build meals around these.`);
   }
