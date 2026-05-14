@@ -21,6 +21,7 @@ model User {
   moodEntries  MoodEntry[]
   customFoods  Food[]
   recurringFoods RecurringFoodLog[]
+  savedExercises SavedExercise[]
 }
 
 model Food {
@@ -113,6 +114,22 @@ model Exercise {
   duration       Int      // minutes
   date           String   // YYYY-MM-DD
   createdAt      DateTime @default(now())
+}
+
+// User-managed saved exercises. The Exercise log table keeps its own copy of
+// name/duration/calories, so deleting or renaming a SavedExercise doesn't
+// touch historical log rows.
+model SavedExercise {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  name            String
+  defaultDuration Int      @default(30)
+  defaultCalories Float    @default(0)
+  lastUsedDate    String?  // YYYY-MM-DD of most recent log; null if never used
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, name])
 }
 
 model Recipe {

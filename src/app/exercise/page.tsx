@@ -6,17 +6,16 @@ import { todayStr } from "@/lib/helpers";
 
 interface Exercise {
   id: number; name: string; caloriesBurned: number; duration: number; date: string;
-  createdAt?: string;
 }
 
 interface SavedExercise {
+  id: number;
   name: string;
-  lastCalories: number;
-  lastDuration: number;
-  count: number;
+  defaultDuration: number;
+  defaultCalories: number;
+  lastUsedDate: string | null;
 }
 
-// MET values for common exercises
 const presets = [
   { name: "Walking (brisk)", met: 4.3 },
   { name: "Running (6 mph)", met: 9.8 },
@@ -32,27 +31,9 @@ const presets = [
   { name: "Pilates", met: 3.5 },
 ];
 
-// Calories = MET × weight(kg) × duration(hours)
 function calcBurn(met: number, weightLbs: number, durationMin: number) {
   const kg = weightLbs * 0.453592;
   return Math.round(met * kg * (durationMin / 60));
-}
-
-function deriveSaved(all: Exercise[]): SavedExercise[] {
-  const map = new Map<string, SavedExercise>();
-  // Iterate oldest → newest so the last write wins for "lastX" defaults.
-  for (const ex of all) {
-    const key = ex.name.trim();
-    if (!key) continue;
-    const prev = map.get(key);
-    map.set(key, {
-      name: key,
-      lastCalories: ex.caloriesBurned,
-      lastDuration: ex.duration,
-      count: (prev?.count ?? 0) + 1,
-    });
-  }
-  return Array.from(map.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
 export default function ExercisePage() {
@@ -66,6 +47,8 @@ export default function ExercisePage() {
   const [userWeight, setUserWeight] = useState<number>(135);
   const [selectedMet, setSelectedMet] = useState<number | null>(null);
   const [showSaved, setShowSaved] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", duration: "", calories: "" });
 
   useEffect(() => {
     fetch("/api/weight").then(r => r.json()).then((ws: { weight: number }[]) => {
@@ -74,8 +57,8 @@ export default function ExercisePage() {
   }, []);
 
   const refreshSaved = useCallback(async () => {
-    const all: Exercise[] = await fetch("/api/exercise").then(r => r.json());
-    setSaved(deriveSaved(all));
+    const list: SavedExercise[] = await fetch("/api/saved-exercise").then(r => r.json());
+    setSaved(list);
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -86,6 +69,11 @@ export default function ExercisePage() {
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { refreshSaved(); }, [refreshSaved]);
 
+  const showFlash = (msg: string, ms = 2000) => {
+    setFlash(msg);
+    setTimeout(() => setFlash(""), ms);
+  };
+
   const pickPreset = (preset: typeof presets[0]) => {
     setName(preset.name);
     setSelectedMet(preset.met);
@@ -95,8 +83,8 @@ export default function ExercisePage() {
 
   const pickSaved = (s: SavedExercise) => {
     setName(s.name);
-    setDuration(String(s.lastDuration));
-    setCalories(String(Math.round(s.lastCalories)));
+    setDuration(String(s.defaultDuration));
+    setCalories(String(Math.round(s.defaultCalories)));
     setSelectedMet(null);
   };
 
@@ -109,7 +97,7 @@ export default function ExercisePage() {
 
   const handleLog = async () => {
     if (!name || !calories || !duration) return;
-    await fetch("/api/exercise", {
+    const res = await fetch("/api/exercise", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -117,17 +105,83 @@ export default function ExercisePage() {
         duration: parseInt(duration), date,
       }),
     });
-    setFlash(`Logged ${name}!`);
+    if (!res.ok) {
+      showFlash(`✗ Could not log (${res.status})`, 6000);
+      return;
+    }
+    showFlash(`Logged ${name}!`);
     setName(""); setCalories(""); setDuration("30"); setSelectedMet(null);
     fetchData();
     refreshSaved();
-    setTimeout(() => setFlash(""), 2000);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!name) return;
+    const res = await fetch("/api/saved-exercise", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        defaultDuration: parseInt(duration) || 30,
+        defaultCalories: parseFloat(calories) || 0,
+      }),
+    });
+    if (!res.ok) {
+      showFlash(`✗ Could not save (${res.status})`, 6000);
+      return;
+    }
+    showFlash(`Saved ${name} to your exercises`);
+    refreshSaved();
   };
 
   const handleDelete = async (id: number) => {
     await fetch(`/api/exercise?id=${id}`, { method: "DELETE" });
     fetchData();
+  };
+
+  const startEdit = (s: SavedExercise) => {
+    setEditingId(s.id);
+    setEditForm({
+      name: s.name,
+      duration: String(s.defaultDuration),
+      calories: String(Math.round(s.defaultCalories)),
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({ name: "", duration: "", calories: "" });
+  };
+
+  const handleSaveEdit = async (id: number) => {
+    if (!editForm.name.trim()) return;
+    const res = await fetch(`/api/saved-exercise?id=${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editForm.name.trim(),
+        defaultDuration: parseInt(editForm.duration) || 30,
+        defaultCalories: parseFloat(editForm.calories) || 0,
+      }),
+    });
+    if (!res.ok) {
+      showFlash(`✗ Could not save (${res.status})`, 6000);
+      return;
+    }
+    cancelEdit();
     refreshSaved();
+    showFlash("Saved");
+  };
+
+  const handleDeleteSaved = async (s: SavedExercise) => {
+    if (!confirm(`Remove "${s.name}" from your exercises? Past logs are unaffected.`)) return;
+    const res = await fetch(`/api/saved-exercise?id=${s.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      showFlash(`✗ Could not remove (${res.status})`, 6000);
+      return;
+    }
+    refreshSaved();
+    showFlash(`Removed ${s.name}`);
   };
 
   const totalBurned = exercises.reduce((s, e) => s + e.caloriesBurned, 0);
@@ -137,9 +191,9 @@ export default function ExercisePage() {
       <div className="pixel-label text-center" style={{ fontSize: "10px" }}>✧ Exercise ✧</div>
 
       {flash && (
-        <div className="window slidein" style={{ borderColor: "#6bcb77" }}>
-          <div className="window-body text-center font-bold" style={{ color: "#2d8a4e", padding: "10px" }}>
-            ✦ {flash} ✦
+        <div className="window slidein" style={{ borderColor: flash.startsWith("✗") ? "#e84d6a" : "#6bcb77" }}>
+          <div className="window-body text-center font-bold" style={{ color: flash.startsWith("✗") ? "#a8264a" : "#2d8a4e", padding: "10px" }}>
+            {flash.startsWith("✗") ? flash : `✦ ${flash} ✦`}
           </div>
         </div>
       )}
@@ -166,30 +220,63 @@ export default function ExercisePage() {
 
       {saved.length > 0 && (
         <Window title={`💾 My Exercises (${saved.length})`}>
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-xs" style={{ color: "#9b80b8" }}>
-              From your past logs. Tap one to fill the form — adjust before logging.
+          <div className="flex justify-between items-center mb-2 gap-2">
+            <p className="text-xs flex-1 min-w-0" style={{ color: "#9b80b8" }}>
+              Tap a row to load it into the form. Edit or remove to manage the list — past logs stay intact.
             </p>
-            <button onClick={() => setShowSaved(!showSaved)} className="btn-blue btn-sm text-xs">
+            <button onClick={() => setShowSaved(!showSaved)} className="btn-blue btn-sm text-xs shrink-0">
               {showSaved ? "hide" : "show"}
             </button>
           </div>
           {showSaved && (
-            <div className="space-y-1" style={{ maxHeight: 240, overflowY: "auto" }}>
-              {saved.map(s => (
-                <button
-                  key={s.name}
-                  onClick={() => pickSaved(s)}
-                  className={`list-row w-full text-left ${name === s.name ? "active-row" : ""}`}
-                  style={{ cursor: "pointer", border: "none", background: "transparent" }}
-                >
-                  <div className="flex-1 min-w-0">
+            <div className="space-y-1" style={{ maxHeight: 280, overflowY: "auto" }}>
+              {saved.map(s => editingId === s.id ? (
+                <div key={s.id} className="list-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
+                  <input
+                    value={editForm.name}
+                    onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Name"
+                    className="input"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={editForm.duration}
+                      onChange={e => setEditForm(f => ({ ...f, duration: e.target.value }))}
+                      placeholder="min"
+                      className="input flex-1 min-w-0"
+                    />
+                    <input
+                      type="number"
+                      value={editForm.calories}
+                      onChange={e => setEditForm(f => ({ ...f, calories: e.target.value }))}
+                      placeholder="kcal"
+                      className="input flex-1 min-w-0"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleSaveEdit(s.id)} className="btn-pink btn-sm flex-1">save</button>
+                    <button onClick={cancelEdit} className="btn-blue btn-sm flex-1">cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div key={s.id} className="list-row">
+                  <button
+                    onClick={() => pickSaved(s)}
+                    className="flex-1 min-w-0 text-left"
+                    style={{ cursor: "pointer", border: "none", background: "transparent", padding: 0 }}
+                  >
                     <div className="text-sm font-semibold truncate">{s.name}</div>
                     <div className="text-[10px]" style={{ color: "#9b80b8" }}>
-                      last: {s.lastDuration} min · {Math.round(s.lastCalories)} kcal · {s.count}× logged
+                      {s.defaultDuration} min · {Math.round(s.defaultCalories)} kcal
+                      {s.lastUsedDate && ` · last ${s.lastUsedDate}`}
                     </div>
+                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => startEdit(s)} className="delete-btn" title="Edit" style={{ background: "#ede0f5", color: "#7c3aed" }}>✎</button>
+                    <button onClick={() => handleDeleteSaved(s)} className="delete-btn" title="Remove">×</button>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
@@ -221,6 +308,9 @@ export default function ExercisePage() {
           </div>
           <button onClick={handleLog} className="btn-pink w-full py-3">
             ✧ Log Exercise ✧
+          </button>
+          <button onClick={handleSaveTemplate} disabled={!name} className="btn-blue w-full">
+            ✧ Save to My Exercises (no log) ✧
           </button>
         </div>
       </Window>

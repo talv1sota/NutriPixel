@@ -28,6 +28,26 @@ export async function POST(req: NextRequest) {
       date: body.date,
     },
   });
+  // Keep the saved-exercise template in sync: upsert by name with the values
+  // the user just logged, and stamp lastUsedDate so the UI can sort by recency.
+  if (typeof body.name === "string" && body.name.trim()) {
+    const name = body.name.trim();
+    await prisma.savedExercise.upsert({
+      where: { userId_name: { userId: session.userId, name } },
+      update: {
+        defaultDuration: body.duration,
+        defaultCalories: body.caloriesBurned,
+        lastUsedDate: body.date,
+      },
+      create: {
+        userId: session.userId,
+        name,
+        defaultDuration: body.duration,
+        defaultCalories: body.caloriesBurned,
+        lastUsedDate: body.date,
+      },
+    });
+  }
   return NextResponse.json(exercise);
 }
 

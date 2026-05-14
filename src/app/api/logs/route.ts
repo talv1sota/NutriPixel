@@ -51,6 +51,41 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const idParam = req.nextUrl.searchParams.get("id");
+  if (!idParam) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  const id = parseInt(idParam, 10);
+  if (!Number.isFinite(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+
+  const log = await prisma.foodLog.findFirst({ where: { id, userId: session.userId } });
+  if (!log) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  try {
+    const body = await req.json();
+    const data: { amount?: number; meal?: string; date?: string } = {};
+    if (typeof body.amount === "number" && isFinite(body.amount) && body.amount > 0) {
+      data.amount = body.amount;
+    }
+    if (typeof body.meal === "string" && body.meal) data.meal = body.meal;
+    if (typeof body.date === "string" && body.date) data.date = body.date;
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+    }
+
+    const updated = await prisma.foodLog.update({ where: { id }, data });
+    const food = updated.foodId ? await prisma.food.findUnique({ where: { id: updated.foodId } }) : null;
+    return NextResponse.json({ ...updated, food });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[/api/logs PATCH] failed:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

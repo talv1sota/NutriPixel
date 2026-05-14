@@ -37,6 +37,15 @@ const macroUnits: Record<MacroKey, string> = {
   calories: "kcal", protein: "g", carbs: "g", fat: "g",
 };
 
+const mealOptions = [
+  { v: "breakfast", l: "🌅 Breakfast" },
+  { v: "lunch", l: "🌸 Lunch" },
+  { v: "dinner", l: "🌙 Dinner" },
+  { v: "snack", l: "🍬 Snack" },
+  { v: "dessert", l: "🧁 Dessert" },
+  { v: "supplement", l: "💊 Supplement" },
+];
+
 export default function Dashboard() {
   const [logs, setLogs] = useState<FoodLog[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -45,6 +54,9 @@ export default function Dashboard() {
   const [mood, setMood] = useState<Mood | null>(null);
   const [date, setDate] = useState(todayStr());
   const [expanded, setExpanded] = useState<MacroKey | null>(null);
+  const [editingLogId, setEditingLogId] = useState<number | null>(null);
+  const [editLog, setEditLog] = useState({ amount: "", meal: "" });
+  const [editFlash, setEditFlash] = useState("");
 
   const fetchData = useCallback(async () => {
     const [lr, gr, er, wr, mr] = await Promise.all([
@@ -85,6 +97,38 @@ export default function Dashboard() {
     fetchData();
   };
 
+  const startEditLog = (log: FoodLog) => {
+    setEditingLogId(log.id);
+    setEditLog({ amount: String(log.amount), meal: log.meal });
+  };
+
+  const cancelEditLog = () => {
+    setEditingLogId(null);
+    setEditLog({ amount: "", meal: "" });
+  };
+
+  const handleSaveEditLog = async (id: number) => {
+    const amount = parseFloat(editLog.amount);
+    if (!isFinite(amount) || amount <= 0) {
+      setEditFlash("✗ Amount must be a positive number");
+      setTimeout(() => setEditFlash(""), 4000);
+      return;
+    }
+    const res = await fetch(`/api/logs?id=${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount, meal: editLog.meal }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setEditFlash(`✗ Edit failed (${res.status})${body?.error ? ": " + body.error : ""}`);
+      setTimeout(() => setEditFlash(""), 6000);
+      return;
+    }
+    cancelEditLog();
+    fetchData();
+  };
+
   const handleDeleteExercise = async (id: number) => {
     await fetch(`/api/exercise?id=${id}`, { method: "DELETE" });
     fetchData();
@@ -104,8 +148,8 @@ export default function Dashboard() {
   const tdee = bmr ? calcTDEE(bmr, goal!.activityLevel) : null;
   const bmiInfo = bmi ? bmiCategory(bmi) : null;
 
-  const meals = ["breakfast", "lunch", "dinner", "snack"];
-  const mealIcons: Record<string, string> = { breakfast: "🌅", lunch: "🌸", dinner: "🌙", snack: "🍬" };
+  const meals = ["breakfast", "lunch", "dinner", "snack", "dessert", "supplement"];
+  const mealIcons: Record<string, string> = { breakfast: "🌅", lunch: "🌸", dinner: "🌙", snack: "🍬", dessert: "🧁", supplement: "💊" };
 
   return (
     <div className="space-y-5 pt-3">
@@ -251,6 +295,14 @@ export default function Dashboard() {
         </Window>
       )}
 
+      {editFlash && (
+        <div className="window slidein" style={{ borderColor: "#e84d6a" }}>
+          <div className="window-body text-center font-bold" style={{ color: "#a8264a", padding: "10px" }}>
+            {editFlash}
+          </div>
+        </div>
+      )}
+
       {/* Meals */}
       {meals.map((meal) => {
         const ml = logs.filter((l) => l.meal === meal);
@@ -260,17 +312,58 @@ export default function Dashboard() {
           <Window key={meal} title={`${mealIcons[meal]} ${meal.charAt(0).toUpperCase() + meal.slice(1)} — ${cals} kcal`}>
             {ml.map((log) => {
               const m = calcMacros(log.food, log.amount);
+              const isRecipe = log.food.brand === "Recipe";
+              if (editingLogId === log.id) {
+                return (
+                  <div key={log.id} className="list-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
+                    <div className="text-sm font-semibold">
+                      {isRecipe ? log.food.name.replace(/ \(recipe\)$/, "") : log.food.name}
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1 min-w-0">
+                        <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>
+                          {isRecipe ? "Servings ×100" : "Amount (g)"}
+                        </label>
+                        <input
+                          type="number"
+                          value={editLog.amount}
+                          onChange={e => setEditLog(f => ({ ...f, amount: e.target.value }))}
+                          className="input"
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Meal</label>
+                        <select
+                          value={editLog.meal}
+                          onChange={e => setEditLog(f => ({ ...f, meal: e.target.value }))}
+                          className="select"
+                        >
+                          {mealOptions.map(o => (
+                            <option key={o.v} value={o.v}>{o.l}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleSaveEditLog(log.id)} className="btn-pink btn-sm flex-1">save</button>
+                      <button onClick={cancelEditLog} className="btn-blue btn-sm flex-1">cancel</button>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <div key={log.id} className="list-row">
                   <div>
                     <span className="font-semibold">
-                      {log.food.brand === "Recipe" ? log.food.name.replace(/ \(recipe\)$/, "") : log.food.name}
+                      {isRecipe ? log.food.name.replace(/ \(recipe\)$/, "") : log.food.name}
                     </span>
                     {log.food.brand && log.food.brand !== "Recipe" && log.food.brand !== "Generic" && (
                       <span className="text-xs ml-2" style={{ color: "#9b80b8" }}>{log.food.brand}</span>
                     )}
                     <span className="badge ml-2">
-                      {log.food.brand === "Recipe"
+                      {isRecipe
                         ? `${log.amount / 100} serving${log.amount === 100 ? "" : "s"}`
                         : `${log.amount}g`}
                     </span>
@@ -280,7 +373,8 @@ export default function Dashboard() {
                     <span style={{ color: "#5bb8e8" }}>P{m.protein}</span>
                     <span style={{ color: "#dda520" }}>C{m.carbs}</span>
                     <span style={{ color: "#e84d98" }}>F{m.fat}</span>
-                    <button onClick={() => handleDelete(log.id)} className="delete-btn">×</button>
+                    <button onClick={() => startEditLog(log)} className="delete-btn" title="Edit" style={{ background: "#ede0f5", color: "#7c3aed" }}>✎</button>
+                    <button onClick={() => handleDelete(log.id)} className="delete-btn" title="Delete">×</button>
                   </div>
                 </div>
               );
