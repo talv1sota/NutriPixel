@@ -16,13 +16,28 @@ interface Recipe {
   calories: number | null; protein: number | null; carbs: number | null; fat: number | null;
 }
 
+interface RecurringEntry {
+  id: number; foodId: number; amount: number; meal: string; active: boolean;
+  food: Food | null;
+}
+
 type Pick =
   | { kind: "food"; food: Food }
   | { kind: "recipe"; recipe: Recipe };
 
+const mealOptions = [
+  { v: "breakfast", l: "🌅 Breakfast" },
+  { v: "lunch", l: "🌸 Lunch" },
+  { v: "dinner", l: "🌙 Dinner" },
+  { v: "snack", l: "🍬 Snack" },
+  { v: "dessert", l: "🧁 Dessert" },
+  { v: "supplement", l: "💊 Supplement" },
+];
+
 export default function LogPage() {
   const [foods, setFoods] = useState<Food[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recurring, setRecurring] = useState<RecurringEntry[]>([]);
   const [search, setSearch] = useState("");
   const [filteredFoods, setFilteredFoods] = useState<Food[]>([]);
   const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
@@ -35,7 +50,10 @@ export default function LogPage() {
   const [flash, setFlash] = useState("");
   const [showCustom, setShowCustom] = useState(false);
   const [showManage, setShowManage] = useState(false);
-  const [custom, setCustom] = useState({ name: "", calories: "", protein: "", carbs: "", fat: "", serving: "" });
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [custom, setCustom] = useState({
+    name: "", brand: "", calories: "", protein: "", carbs: "", fat: "", serving: "",
+  });
   const ref = useRef<HTMLInputElement>(null);
 
   const myFoods = foods.filter(f => f.userId !== null);
@@ -43,6 +61,10 @@ export default function LogPage() {
   useEffect(() => {
     fetch("/api/foods").then(r => r.json()).then(setFoods);
     fetch("/api/recipes").then(r => r.json()).then(setRecipes);
+    // Reconcile daily recurring logs first, then load the recurring list.
+    fetch("/api/recurring/run", { method: "POST" }).finally(() => {
+      fetch("/api/recurring").then(r => r.json()).then(setRecurring);
+    });
   }, []);
 
   useEffect(() => {
@@ -83,6 +105,11 @@ export default function LogPage() {
       fiber: 0, sugar: 0,
     };
   })();
+
+  const showFlash = (msg: string, ms = 2500) => {
+    setFlash(msg);
+    setTimeout(() => setFlash(""), ms);
+  };
 
   const handleLog = async () => {
     if (!selected) return;
@@ -136,52 +163,75 @@ export default function LogPage() {
     ref.current?.focus();
   };
 
-  const handleCustomLog = async () => {
+  const handleAddRecurring = async () => {
+    if (!selected || selected.kind !== "food" || !amount) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/recurring", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ foodId: selected.food.id, amount: parseFloat(amount), meal }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        showFlash(`✗ Could not add recurring (${res.status})${body?.error ? ": " + body.error : ""}`, 6000);
+      } else {
+        const list = await fetch("/api/recurring").then(r => r.json());
+        setRecurring(list);
+        showFlash(`Added ${selected.food.name} as daily ${meal}`);
+        setShowRecurring(true);
+      }
+    } catch (e) {
+      showFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`, 6000);
+    }
+    setSaving(false);
+  };
+
+  const handleRemoveRecurring = async (id: number) => {
+    try {
+      const res = await fetch(`/api/recurring?id=${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        showFlash(`✗ Could not remove (${res.status})`, 6000);
+        return;
+      }
+      setRecurring(prev => prev.filter(r => r.id !== id));
+      showFlash("Removed from recurring");
+    } catch (e) {
+      showFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`, 6000);
+    }
+  };
+
+  const handleSaveCustom = async () => {
     if (!custom.name || !custom.calories) return;
     setSaving(true);
-    let flashMsg = "";
-    let flashMs = 2500;
     try {
+      const servingG = parseFloat(custom.serving) || 100;
       const res = await fetch("/api/foods", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: custom.name,
-          calories: parseFloat(custom.calories) * 100 / (parseFloat(custom.serving) || 100),
-          protein: (parseFloat(custom.protein) || 0) * 100 / (parseFloat(custom.serving) || 100),
-          carbs: (parseFloat(custom.carbs) || 0) * 100 / (parseFloat(custom.serving) || 100),
-          fat: (parseFloat(custom.fat) || 0) * 100 / (parseFloat(custom.serving) || 100),
-          serving: parseFloat(custom.serving) || 100,
+          brand: custom.brand || "Custom",
+          calories: parseFloat(custom.calories) * 100 / servingG,
+          protein: (parseFloat(custom.protein) || 0) * 100 / servingG,
+          carbs: (parseFloat(custom.carbs) || 0) * 100 / servingG,
+          fat: (parseFloat(custom.fat) || 0) * 100 / servingG,
+          serving: servingG,
         }),
       });
       if (!res.ok) {
-        flashMsg = `✗ Could not create food (${res.status})`;
-        flashMs = 6000;
+        showFlash(`✗ Could not save (${res.status})`, 6000);
       } else {
         const food = await res.json();
-        const logRes = await fetch("/api/logs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ foodId: food.id, amount: parseFloat(custom.serving) || 100, meal, date }),
-        });
-        if (!logRes.ok) {
-          flashMsg = `✗ Food saved but log failed (${logRes.status})`;
-          flashMs = 6000;
-          setFoods(prev => [...prev, food]);
-        } else {
-          flashMsg = `Logged ${custom.name}!`;
-          setCustom({ name: "", calories: "", protein: "", carbs: "", fat: "", serving: "" });
-          setShowCustom(false);
-          setFoods(prev => [...prev, food]);
-        }
+        setFoods(prev => [...prev, food]);
+        setCustom({ name: "", brand: "", calories: "", protein: "", carbs: "", fat: "", serving: "" });
+        setShowCustom(false);
+        showFlash(`Saved ${food.name} to your foods. Search to log it.`);
       }
     } catch (e) {
-      flashMsg = `✗ Network error: ${e instanceof Error ? e.message : "unknown"}`;
-      flashMs = 6000;
+      showFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`, 6000);
     }
-    setFlash(flashMsg);
     setSaving(false);
-    setTimeout(() => setFlash(""), flashMs);
   };
 
   const handleDeleteFood = async (food: Food) => {
@@ -189,16 +239,14 @@ export default function LogPage() {
       const res = await fetch(`/api/foods?id=${food.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setFlash(`✗ Remove failed (${res.status})${body?.error ? ": " + String(body.error).slice(0, 120) : ""}`);
-        setTimeout(() => setFlash(""), 6000);
+        showFlash(`✗ Remove failed (${res.status})${body?.error ? ": " + String(body.error).slice(0, 120) : ""}`, 6000);
         return;
       }
       setFoods(prev => prev.filter(f => f.id !== food.id));
-      setFlash(`Hid ${food.name} (existing logs kept)`);
-      setTimeout(() => setFlash(""), 2500);
+      setRecurring(prev => prev.filter(r => r.foodId !== food.id));
+      showFlash(`Removed ${food.name} (existing logs kept)`);
     } catch (e) {
-      setFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`);
-      setTimeout(() => setFlash(""), 6000);
+      showFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`, 6000);
     }
   };
 
@@ -218,10 +266,9 @@ export default function LogPage() {
         <div className="flex gap-3">
           <input type="date" value={date} onChange={e => setDate(e.target.value)} className="input flex-1" />
           <select value={meal} onChange={e => setMeal(e.target.value)} className="select flex-1">
-            <option value="breakfast">🌅 Breakfast</option>
-            <option value="lunch">🌸 Lunch</option>
-            <option value="dinner">🌙 Dinner</option>
-            <option value="snack">🍬 Snack</option>
+            {mealOptions.map(o => (
+              <option key={o.v} value={o.v}>{o.l}</option>
+            ))}
           </select>
         </div>
       </Window>
@@ -340,20 +387,56 @@ export default function LogPage() {
             <button onClick={handleLog} disabled={saving} className="btn-pink w-full py-3">
               {saving ? "✧ Logging... ✧" : "✧ Log Food ✧"}
             </button>
+            {selected.kind === "food" && (
+              <button onClick={handleAddRecurring} disabled={saving || !amount} className="btn-blue w-full">
+                ✧ Add as daily ({mealOptions.find(o => o.v === meal)?.l ?? meal})
+              </button>
+            )}
           </div>
         </Window>
       )}
 
       <div className="text-center flex justify-center gap-2 flex-wrap">
         <button onClick={() => setShowCustom(!showCustom)} className="btn-blue btn-sm">
-          {showCustom ? "cancel" : "✧ Quick Add Custom Food ✧"}
+          {showCustom ? "cancel" : "✧ Add Custom Food ✧"}
         </button>
         {myFoods.length > 0 && (
           <button onClick={() => setShowManage(!showManage)} className="btn-blue btn-sm">
             {showManage ? "hide" : `✧ My Foods (${myFoods.length}) ✧`}
           </button>
         )}
+        <button onClick={() => setShowRecurring(!showRecurring)} className="btn-blue btn-sm">
+          {showRecurring ? "hide" : `✧ Recurring${recurring.length ? ` (${recurring.length})` : ""} ✧`}
+        </button>
       </div>
+
+      {showRecurring && (
+        <Window title="🔁 Daily Recurring">
+          <p className="text-xs mb-2" style={{ color: "#9b80b8" }}>
+            Auto-logs each day. Add by picking a food above, setting amount/meal, then tapping <strong>Add as daily</strong>. Today&apos;s logs are created when you open this page.
+          </p>
+          {recurring.length === 0 ? (
+            <p className="vt-text text-center py-3">none yet ~</p>
+          ) : (
+            <div className="space-y-1">
+              {recurring.map(r => (
+                <div key={r.id} className="list-row">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">
+                      {r.food?.name ?? "(deleted food)"}
+                    </div>
+                    <div className="text-[10px]" style={{ color: "#9b80b8" }}>
+                      {r.amount}{r.food?.unit ?? "g"} · {mealOptions.find(o => o.v === r.meal)?.l ?? r.meal}
+                      {r.food && ` · ~${Math.round(r.food.calories * r.amount / 100)} kcal`}
+                    </div>
+                  </div>
+                  <button onClick={() => handleRemoveRecurring(r.id)} className="delete-btn" title="Stop recurring">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Window>
+      )}
 
       {showManage && myFoods.length > 0 && (
         <Window title="✧ My Custom Foods">
@@ -387,14 +470,24 @@ export default function LogPage() {
       {showCustom && (
         <Window title="✧ Custom Food">
           <div className="space-y-3">
-            <div>
-              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
-              <input type="text" value={custom.name} onChange={e => setCustom(c => ({ ...c, name: e.target.value }))}
-                className="input w-full" placeholder="e.g. Qdoba Bowl" />
+            <p className="text-xs" style={{ color: "#9b80b8" }}>
+              Saves to your foods. Then search for it above to log a serving — pick your portion before logging.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
+                <input type="text" value={custom.name} onChange={e => setCustom(c => ({ ...c, name: e.target.value }))}
+                  className="input w-full" placeholder="e.g. Greek Yogurt" />
+              </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Brand (optional)</label>
+                <input type="text" value={custom.brand} onChange={e => setCustom(c => ({ ...c, brand: e.target.value }))}
+                  className="input w-full" placeholder="e.g. Fage" />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Calories</label>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Calories (per serving)</label>
                 <input type="number" value={custom.calories} onChange={e => setCustom(c => ({ ...c, calories: e.target.value }))}
                   className="input w-full" placeholder="kcal" />
               </div>
@@ -421,8 +514,8 @@ export default function LogPage() {
                   className="input w-full" placeholder="g" />
               </div>
             </div>
-            <button onClick={handleCustomLog} disabled={saving || !custom.name || !custom.calories} className="btn-pink w-full py-3">
-              {saving ? "✧ Logging... ✧" : "✧ Log Custom Food ✧"}
+            <button onClick={handleSaveCustom} disabled={saving || !custom.name || !custom.calories} className="btn-pink w-full py-3">
+              {saving ? "✧ Saving... ✧" : "✧ Save to My Foods ✧"}
             </button>
           </div>
         </Window>

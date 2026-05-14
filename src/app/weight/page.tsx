@@ -94,17 +94,17 @@ export default function WeightPage() {
 
       {/* Log */}
       <Window title="📝 Log Weight">
-        <div className="flex gap-3 items-end">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="flex-1 min-w-0">
             <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Weight ({unit})</label>
             <input type="number" value={weight} onChange={e => setWeight(e.target.value)}
               placeholder="Enter weight" className="input" step="0.1" />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Date</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} className="input" />
           </div>
-          <button onClick={handleLog} className="btn-pink">Log</button>
+          <button onClick={handleLog} className="btn-pink w-full sm:w-auto">Log</button>
         </div>
       </Window>
 

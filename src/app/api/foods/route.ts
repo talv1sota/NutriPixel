@@ -71,6 +71,10 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Cannot remove a global or another user's food" }, { status: 403 });
     }
 
+    // Remove any recurring entries pointing at this food so the food row can
+    // be deleted cleanly. Historical logs are snapshotted (below) and survive.
+    await prisma.recurringFoodLog.deleteMany({ where: { foodId: id, userId: session.userId } });
+
     // Snapshot the food's macros onto every log that references it, then null
     // out foodId so we can hard-delete without breaking the FK. Each log keeps
     // its original macros forever — independent of the live Food table.

@@ -213,14 +213,14 @@ export default function GoalsPage() {
             </div>
           </div>
           <div className="flex gap-3 items-end">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>
                 Height {heightDisplay && <span style={{ color: "#9b5de5" }}>({heightDisplay})</span>}
               </label>
               <input type="number" value={form.height} onChange={e => u("height", e.target.value)}
                 placeholder={form.heightUnit === "in" ? "e.g. 63" : "e.g. 160"} className="input" />
             </div>
-            <div>
+            <div className="shrink-0">
               <select value={form.heightUnit} onChange={e => u("heightUnit", e.target.value)} className="select">
                 <option value="in">inches</option>
                 <option value="cm">cm</option>
@@ -273,12 +273,12 @@ export default function GoalsPage() {
           {form.goalType !== "maintain" && (
             <>
               <div className="flex gap-3">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Target Weight</label>
                   <input type="number" value={form.targetWeight} onChange={e => u("targetWeight", e.target.value)}
                     placeholder="e.g. 125" className="input" step="0.1" />
                 </div>
-                <div>
+                <div className="shrink-0">
                   <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Unit</label>
                   <select value={form.unit} onChange={e => u("unit", e.target.value)} className="select">
                     <option value="lbs">lbs</option>
@@ -286,7 +286,7 @@ export default function GoalsPage() {
                   </select>
                 </div>
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Target Date (optional)</label>
                 <input type="date" value={form.targetDate} onChange={e => u("targetDate", e.target.value)} className="input" />
               </div>

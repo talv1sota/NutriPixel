@@ -20,6 +20,7 @@ model User {
   recipes      Recipe[]
   moodEntries  MoodEntry[]
   customFoods  Food[]
+  recurringFoods RecurringFoodLog[]
 }
 
 model Food {
@@ -38,6 +39,7 @@ model Food {
   userId   Int?
   user     User?     @relation(fields: [userId], references: [id])
   logs     FoodLog[]
+  recurringLogs RecurringFoodLog[]
 }
 
 model FoodLog {
@@ -134,6 +136,26 @@ model Recipe {
   fiber        Float?
   sugar        Float?
   createdAt    DateTime @default(now())
+}
+
+// A food the user wants to auto-log every day (e.g. daily fish oil).
+// On the log page, a one-shot reconciler creates today's FoodLog rows for
+// each active recurring entry the user hasn't already logged.
+model RecurringFoodLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  foodId      Int
+  food        Food     @relation(fields: [foodId], references: [id])
+  amount      Float    // grams (or ml for liquids)
+  meal        String   // breakfast, lunch, dinner, snack, dessert, supplement
+  active      Boolean  @default(true)
+  // Last YYYY-MM-DD on which the reconciler created a FoodLog for this entry.
+  // If user deletes today's log, we won't recreate it (lastRunDate already == today).
+  lastRunDate String?
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, foodId, meal])
 }
 
 model MoodEntry {
