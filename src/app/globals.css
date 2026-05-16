@@ -158,6 +158,25 @@ body::before {
   transition: border-color 0.15s;
 }
 
+/* Native date inputs on iOS keep a fixed inner width based on their picker
+   icon, which makes them spill out of narrow flex parents. Strip the native
+   appearance so the date renders as plain text inside our .input box. The
+   field is still tappable — iOS opens the picker on focus either way. */
+input[type="date"].input,
+input[type="time"].input,
+input[type="datetime-local"].input {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: none;
+}
+input[type="date"].input::-webkit-date-and-time-value {
+  text-align: left;
+}
+input[type="date"].input::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+
 .input:focus {
   border-color: #9b5de5;
   box-shadow: inset 1px 1px 3px rgba(150, 100, 200, 0.15), 0 0 0 2px rgba(155, 93, 229, 0.15);
