@@ -10,7 +10,6 @@ interface SavedItemModalProps {
   onClose: () => void;
   onLog: () => void;
   onEdit: () => void;
-  onDelete: () => void;
   onSave: () => void;
   onCancelEdit: () => void;
   view: ReactNode;
@@ -23,7 +22,7 @@ interface SavedItemModalProps {
 // Save / Cancel at the bottom.
 export default function SavedItemModal({
   title, isEditing, saving,
-  onClose, onLog, onEdit, onDelete, onSave, onCancelEdit,
+  onClose, onLog, onEdit, onSave, onCancelEdit,
   view, editForm,
 }: SavedItemModalProps) {
   const [mounted, setMounted] = useState(false);
@@ -75,21 +74,9 @@ export default function SavedItemModal({
                 >edit</button>
               </div>
               {view}
-              <div className="flex gap-2 pt-2">
-                <button onClick={onLog} className="btn-pink flex-1 py-2">
-                  ✧ Log ✧
-                </button>
-                <button
-                  onClick={onDelete}
-                  className="btn-blue py-2"
-                  style={{
-                    padding: "0 16px",
-                    background: "#fbe6e9",
-                    color: "#a8264a",
-                    borderColor: "#e84d6a",
-                  }}
-                >delete</button>
-              </div>
+              <button onClick={onLog} className="btn-pink w-full py-2">
+                ✧ Log ✧
+              </button>
             </>
           )}
         </div>

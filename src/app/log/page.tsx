@@ -316,22 +316,19 @@ export default function LogPage() {
     showFlash("Loaded into log form — adjust portion and tap Log Food");
   };
 
-  const handleDeleteFoodFromModal = async () => {
-    if (!openSavedFood) return;
-    if (!confirm(`Remove "${openSavedFood.name}"? Past logs are unaffected.`)) return;
+  const handleDeleteFood = async (food: Food) => {
+    if (!confirm(`Remove "${food.name}"? Past logs are unaffected.`)) return;
     try {
-      const res = await fetch(`/api/foods?id=${openSavedFood.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/foods?id=${food.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         showFlash(`✗ Remove failed (${res.status})${body?.error ? ": " + String(body.error).slice(0, 120) : ""}`, 6000);
         return;
       }
-      const removedId = openSavedFood.id;
-      const removedName = openSavedFood.name;
-      setFoods(prev => prev.filter(f => f.id !== removedId));
-      setRecurring(prev => prev.filter(r => r.foodId !== removedId));
-      closeFoodModal();
-      showFlash(`Removed ${removedName}`);
+      setFoods(prev => prev.filter(f => f.id !== food.id));
+      setRecurring(prev => prev.filter(r => r.foodId !== food.id));
+      if (openSavedFood?.id === food.id) closeFoodModal();
+      showFlash(`Removed ${food.name}`);
     } catch (e) {
       showFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`, 6000);
     }
@@ -529,20 +526,20 @@ export default function LogPage() {
               .slice()
               .sort((a, b) => a.name.localeCompare(b.name))
               .map(food => (
-                <button
-                  key={`mine-${food.id}`}
-                  onClick={() => openFoodModal(food)}
-                  className="list-row w-full text-left"
-                  style={{ cursor: "pointer", border: "none", background: "transparent" }}
-                >
-                  <div className="flex-1 min-w-0">
+                <div key={`mine-${food.id}`} className="list-row" style={{ alignItems: "flex-start", gap: 10 }}>
+                  <button
+                    onClick={() => openFoodModal(food)}
+                    className="flex-1 text-left"
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                  >
                     <div className="text-sm font-semibold truncate">{food.name}</div>
                     <div className="text-[10px]" style={{ color: "#9b80b8" }}>
                       {food.brand && food.brand !== "Custom" ? `${food.brand} · ` : ""}
                       {Math.round(food.calories * food.serving / 100)} kcal / {food.serving}{food.unit}
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  <button onClick={() => handleDeleteFood(food)} className="delete-btn">×</button>
+                </div>
               ))}
           </div>
         </Window>
@@ -556,7 +553,6 @@ export default function LogPage() {
           onClose={closeFoodModal}
           onLog={handleLogFoodFromModal}
           onEdit={startEditFoodInModal}
-          onDelete={handleDeleteFoodFromModal}
           onSave={handleSaveEditFood}
           onCancelEdit={cancelEditFoodInModal}
           view={

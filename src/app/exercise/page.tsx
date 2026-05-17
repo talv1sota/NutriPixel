@@ -195,16 +195,15 @@ export default function ExercisePage() {
     showFlash("Loaded into log form — adjust and tap Log Exercise");
   };
 
-  const handleDeleteFromModal = async () => {
-    if (!openSaved) return;
-    if (!confirm(`Remove "${openSaved.name}"? Past logs are unaffected.`)) return;
-    const res = await fetch(`/api/saved-exercise?id=${openSaved.id}`, { method: "DELETE" });
+  const handleDeleteSaved = async (s: SavedExercise) => {
+    if (!confirm(`Remove "${s.name}"? Past logs are unaffected.`)) return;
+    const res = await fetch(`/api/saved-exercise?id=${s.id}`, { method: "DELETE" });
     if (!res.ok) {
       showFlash(`✗ Could not remove (${res.status})`, 6000);
       return;
     }
-    showFlash(`Removed ${openSaved.name}`);
-    closeModal();
+    if (openSaved?.id === s.id) closeModal();
+    showFlash(`Removed ${s.name}`);
     refreshSaved();
   };
 
@@ -286,20 +285,20 @@ export default function ExercisePage() {
         <Window title="💾 My Exercises">
           <div className="space-y-2" style={{ maxHeight: 360, overflowY: "auto" }}>
             {saved.map(s => (
-              <button
-                key={s.id}
-                onClick={() => openModal(s)}
-                className="list-row w-full text-left"
-                style={{ cursor: "pointer", border: "none", background: "transparent" }}
-              >
-                <div className="flex-1 min-w-0">
+              <div key={s.id} className="list-row" style={{ alignItems: "flex-start", gap: 10 }}>
+                <button
+                  onClick={() => openModal(s)}
+                  className="flex-1 text-left"
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                >
                   <div className="text-sm font-semibold truncate">{s.name}</div>
                   <div className="text-[10px]" style={{ color: "#9b80b8" }}>
                     {s.defaultDuration} min · {Math.round(s.defaultCalories)} kcal
                     {s.lastUsedDate && ` · last ${s.lastUsedDate}`}
                   </div>
-                </div>
-              </button>
+                </button>
+                <button onClick={() => handleDeleteSaved(s)} className="delete-btn">×</button>
+              </div>
             ))}
           </div>
         </Window>
@@ -330,7 +329,6 @@ export default function ExercisePage() {
           onClose={closeModal}
           onLog={handleLogFromModal}
           onEdit={startEditInModal}
-          onDelete={handleDeleteFromModal}
           onSave={handleSaveEdit}
           onCancelEdit={cancelEditInModal}
           view={
