@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Window from "@/components/Window";
-import SavedRow from "@/components/SavedRow";
+import SavedItemModal from "@/components/SavedItemModal";
 import { todayStr, calcMacros } from "@/lib/helpers";
 
 interface Food {
@@ -55,11 +55,12 @@ export default function LogPage() {
   const [custom, setCustom] = useState({
     name: "", brand: "", calories: "", protein: "", carbs: "", fat: "", serving: "",
   });
-  const [editingFoodId, setEditingFoodId] = useState<number | null>(null);
+  const [openSavedFood, setOpenSavedFood] = useState<Food | null>(null);
+  const [editingOpenFood, setEditingOpenFood] = useState(false);
+  const [savingEditFood, setSavingEditFood] = useState(false);
   const [editFood, setEditFood] = useState({
     name: "", brand: "", calories: "", protein: "", carbs: "", fat: "", serving: "",
   });
-  const [selectedSavedFoodId, setSelectedSavedFoodId] = useState<number | null>(null);
   const ref = useRef<HTMLInputElement>(null);
 
   const myFoods = foods.filter(f => f.userId !== null);
@@ -240,42 +241,50 @@ export default function LogPage() {
     setSaving(false);
   };
 
-  const startEditFood = (food: Food) => {
-    setEditingFoodId(food.id);
+  const openFoodModal = (food: Food) => {
+    setOpenSavedFood(food);
+    setEditingOpenFood(false);
+  };
+
+  const closeFoodModal = () => {
+    setOpenSavedFood(null);
+    setEditingOpenFood(false);
+  };
+
+  const startEditFoodInModal = () => {
+    if (!openSavedFood) return;
     // Macros in DB are per 100g; display them rescaled to the food's serving
     // so the form matches what the user originally entered.
-    const s = food.serving || 100;
+    const s = openSavedFood.serving || 100;
     setEditFood({
-      name: food.name,
-      brand: food.brand ?? "",
-      calories: String(Math.round((food.calories * s) / 100 * 10) / 10),
-      protein: String(Math.round((food.protein * s) / 100 * 10) / 10),
-      carbs: String(Math.round((food.carbs * s) / 100 * 10) / 10),
-      fat: String(Math.round((food.fat * s) / 100 * 10) / 10),
+      name: openSavedFood.name,
+      brand: openSavedFood.brand ?? "",
+      calories: String(Math.round((openSavedFood.calories * s) / 100 * 10) / 10),
+      protein: String(Math.round((openSavedFood.protein * s) / 100 * 10) / 10),
+      carbs: String(Math.round((openSavedFood.carbs * s) / 100 * 10) / 10),
+      fat: String(Math.round((openSavedFood.fat * s) / 100 * 10) / 10),
       serving: String(s),
     });
+    setEditingOpenFood(true);
   };
 
-  const cancelEditFood = () => {
-    setEditingFoodId(null);
-    setEditFood({ name: "", brand: "", calories: "", protein: "", carbs: "", fat: "", serving: "" });
-  };
+  const cancelEditFoodInModal = () => setEditingOpenFood(false);
 
-  const handleSaveEditFood = async (id: number) => {
-    if (!editFood.name.trim()) return;
+  const handleSaveEditFood = async () => {
+    if (!openSavedFood || !editFood.name.trim()) return;
     const s = parseFloat(editFood.serving) || 100;
     const payload = {
       name: editFood.name.trim(),
       brand: editFood.brand.trim() || "Custom",
       serving: s,
-      // Convert per-serving values back into per-100g.
       calories: (parseFloat(editFood.calories) || 0) * 100 / s,
       protein: (parseFloat(editFood.protein) || 0) * 100 / s,
       carbs: (parseFloat(editFood.carbs) || 0) * 100 / s,
       fat: (parseFloat(editFood.fat) || 0) * 100 / s,
     };
+    setSavingEditFood(true);
     try {
-      const res = await fetch(`/api/foods?id=${id}`, {
+      const res = await fetch(`/api/foods?id=${openSavedFood.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -283,52 +292,46 @@ export default function LogPage() {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         showFlash(`✗ Edit failed (${res.status})${body?.error ? ": " + body.error : ""}`, 6000);
+        setSavingEditFood(false);
         return;
       }
       const updated: Food = await res.json();
-      setFoods(prev => prev.map(f => f.id === id ? { ...f, ...updated } : f));
-      cancelEditFood();
+      setFoods(prev => prev.map(f => f.id === updated.id ? { ...f, ...updated } : f));
+      setOpenSavedFood(updated);
+      setEditingOpenFood(false);
       showFlash(`Updated ${updated.name}`);
     } catch (e) {
       showFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`, 6000);
     }
+    setSavingEditFood(false);
   };
 
-  const handleLogSavedFood = async (food: Food) => {
-    try {
-      const res = await fetch("/api/logs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          foodId: food.id,
-          amount: food.serving,
-          meal,
-          date,
-        }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        showFlash(`✗ Save failed (${res.status})${body?.error ? ": " + body.error : ""}`, 6000);
-        return;
-      }
-      showFlash(`Logged ${food.name}!`);
-    } catch (e) {
-      showFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`, 6000);
-    }
+  const handleLogFoodFromModal = () => {
+    if (!openSavedFood) return;
+    // Prefill the regular log form so the user can adjust portion before
+    // committing. The selected food panel below the search bar shows the
+    // amount input + Log button.
+    pickFood(openSavedFood);
+    closeFoodModal();
+    showFlash("Loaded into log form — adjust portion and tap Log Food");
   };
 
-  const handleDeleteFood = async (food: Food) => {
+  const handleDeleteFoodFromModal = async () => {
+    if (!openSavedFood) return;
+    if (!confirm(`Remove "${openSavedFood.name}"? Past logs are unaffected.`)) return;
     try {
-      const res = await fetch(`/api/foods?id=${food.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/foods?id=${openSavedFood.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         showFlash(`✗ Remove failed (${res.status})${body?.error ? ": " + String(body.error).slice(0, 120) : ""}`, 6000);
         return;
       }
-      setFoods(prev => prev.filter(f => f.id !== food.id));
-      setRecurring(prev => prev.filter(r => r.foodId !== food.id));
-      if (selectedSavedFoodId === food.id) setSelectedSavedFoodId(null);
-      showFlash(`Removed ${food.name}`);
+      const removedId = openSavedFood.id;
+      const removedName = openSavedFood.name;
+      setFoods(prev => prev.filter(f => f.id !== removedId));
+      setRecurring(prev => prev.filter(r => r.foodId !== removedId));
+      closeFoodModal();
+      showFlash(`Removed ${removedName}`);
     } catch (e) {
       showFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`, 6000);
     }
@@ -521,67 +524,115 @@ export default function LogPage() {
 
       {showManage && myFoods.length > 0 && (
         <Window title="✧ My Custom Foods">
-          <div className="space-y-1" style={{ maxHeight: 480, overflowY: "auto" }}>
+          <div className="space-y-2" style={{ maxHeight: 480, overflowY: "auto" }}>
             {myFoods
               .slice()
               .sort((a, b) => a.name.localeCompare(b.name))
               .map(food => (
-                <SavedRow
+                <button
                   key={`mine-${food.id}`}
-                  selected={selectedSavedFoodId === food.id}
-                  editing={editingFoodId === food.id}
-                  onSelect={() => setSelectedSavedFoodId(selectedSavedFoodId === food.id ? null : food.id)}
-                  onLog={() => handleLogSavedFood(food)}
-                  onEdit={() => startEditFood(food)}
-                  onDelete={() => handleDeleteFood(food)}
-                  primary={food.name}
-                  secondary={`${food.brand && food.brand !== "Custom" ? `${food.brand} · ` : ""}${Math.round(food.calories * food.serving / 100)} kcal / ${food.serving}${food.unit}`}
-                  editForm={
-                    <>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
-                          <input value={editFood.name} onChange={e => setEditFood(f => ({ ...f, name: e.target.value }))} className="input" />
-                        </div>
-                        <div>
-                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Brand</label>
-                          <input value={editFood.brand} onChange={e => setEditFood(f => ({ ...f, brand: e.target.value }))} className="input" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Calories (per serving)</label>
-                          <input type="number" value={editFood.calories} onChange={e => setEditFood(f => ({ ...f, calories: e.target.value }))} className="input" />
-                        </div>
-                        <div>
-                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Serving size (g)</label>
-                          <input type="number" value={editFood.serving} onChange={e => setEditFood(f => ({ ...f, serving: e.target.value }))} className="input" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Protein</label>
-                          <input type="number" value={editFood.protein} onChange={e => setEditFood(f => ({ ...f, protein: e.target.value }))} className="input" />
-                        </div>
-                        <div>
-                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Carbs</label>
-                          <input type="number" value={editFood.carbs} onChange={e => setEditFood(f => ({ ...f, carbs: e.target.value }))} className="input" />
-                        </div>
-                        <div>
-                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Fat</label>
-                          <input type="number" value={editFood.fat} onChange={e => setEditFood(f => ({ ...f, fat: e.target.value }))} className="input" />
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleSaveEditFood(food.id)} className="btn-pink btn-sm flex-1">save</button>
-                        <button onClick={cancelEditFood} className="btn-blue btn-sm flex-1">cancel</button>
-                      </div>
-                    </>
-                  }
-                />
+                  onClick={() => openFoodModal(food)}
+                  className="list-row w-full text-left"
+                  style={{ cursor: "pointer", border: "none", background: "transparent" }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">{food.name}</div>
+                    <div className="text-[10px]" style={{ color: "#9b80b8" }}>
+                      {food.brand && food.brand !== "Custom" ? `${food.brand} · ` : ""}
+                      {Math.round(food.calories * food.serving / 100)} kcal / {food.serving}{food.unit}
+                    </div>
+                  </div>
+                </button>
               ))}
           </div>
         </Window>
+      )}
+
+      {openSavedFood && (
+        <SavedItemModal
+          title={openSavedFood.name}
+          isEditing={editingOpenFood}
+          saving={savingEditFood}
+          onClose={closeFoodModal}
+          onLog={handleLogFoodFromModal}
+          onEdit={startEditFoodInModal}
+          onDelete={handleDeleteFoodFromModal}
+          onSave={handleSaveEditFood}
+          onCancelEdit={cancelEditFoodInModal}
+          view={
+            <div className="space-y-2 text-sm">
+              {openSavedFood.brand && openSavedFood.brand !== "Custom" && (
+                <div className="flex justify-between">
+                  <span style={{ color: "#9b80b8" }}>Brand</span>
+                  <strong>{openSavedFood.brand}</strong>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span style={{ color: "#9b80b8" }}>Serving</span>
+                <strong>{openSavedFood.serving}{openSavedFood.unit}</strong>
+              </div>
+              <div className="stat-box" style={{ padding: 10 }}>
+                <div className="pixel-label mb-2" style={{ fontSize: 7 }}>Per serving</div>
+                <div className="flex justify-around text-xs font-bold">
+                  <div>
+                    <div style={{ color: "#6bcb77" }}>{Math.round(openSavedFood.calories * openSavedFood.serving / 100)}</div>
+                    <div style={{ fontSize: 9 }}>kcal</div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#5bb8e8" }}>{Math.round(openSavedFood.protein * openSavedFood.serving / 100 * 10) / 10}g</div>
+                    <div style={{ fontSize: 9 }}>protein</div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#dda520" }}>{Math.round(openSavedFood.carbs * openSavedFood.serving / 100 * 10) / 10}g</div>
+                    <div style={{ fontSize: 9 }}>carbs</div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#e84d98" }}>{Math.round(openSavedFood.fat * openSavedFood.serving / 100 * 10) / 10}g</div>
+                    <div style={{ fontSize: 9 }}>fat</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+          editForm={
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
+                  <input value={editFood.name} onChange={e => setEditFood(f => ({ ...f, name: e.target.value }))} className="input" />
+                </div>
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Brand</label>
+                  <input value={editFood.brand} onChange={e => setEditFood(f => ({ ...f, brand: e.target.value }))} className="input" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Calories (per serving)</label>
+                  <input type="number" value={editFood.calories} onChange={e => setEditFood(f => ({ ...f, calories: e.target.value }))} className="input" />
+                </div>
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Serving size (g)</label>
+                  <input type="number" value={editFood.serving} onChange={e => setEditFood(f => ({ ...f, serving: e.target.value }))} className="input" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Protein</label>
+                  <input type="number" value={editFood.protein} onChange={e => setEditFood(f => ({ ...f, protein: e.target.value }))} className="input" />
+                </div>
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Carbs</label>
+                  <input type="number" value={editFood.carbs} onChange={e => setEditFood(f => ({ ...f, carbs: e.target.value }))} className="input" />
+                </div>
+                <div>
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Fat</label>
+                  <input type="number" value={editFood.fat} onChange={e => setEditFood(f => ({ ...f, fat: e.target.value }))} className="input" />
+                </div>
+              </div>
+            </>
+          }
+        />
       )}
 
       {showCustom && (

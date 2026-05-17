@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Window from "@/components/Window";
-import SavedRow from "@/components/SavedRow";
+import SavedItemModal from "@/components/SavedItemModal";
 import { todayStr } from "@/lib/helpers";
 
 interface Exercise {
@@ -48,9 +48,10 @@ export default function ExercisePage() {
   const [userWeight, setUserWeight] = useState<number>(135);
   const [selectedMet, setSelectedMet] = useState<number | null>(null);
   const [showSaved, setShowSaved] = useState(false);
-  const [selectedSavedId, setSelectedSavedId] = useState<number | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [openSaved, setOpenSaved] = useState<SavedExercise | null>(null);
+  const [editingOpen, setEditingOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", duration: "", calories: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     fetch("/api/weight").then(r => r.json()).then((ws: { weight: number }[]) => {
@@ -134,43 +135,34 @@ export default function ExercisePage() {
     fetchData();
   };
 
-  const handleLogSaved = async (s: SavedExercise) => {
-    const res = await fetch("/api/exercise", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: s.name,
-        caloriesBurned: s.defaultCalories,
-        duration: s.defaultDuration,
-        date,
-      }),
-    });
-    if (!res.ok) {
-      showFlash(`✗ Could not log (${res.status})`, 6000);
-      return;
-    }
-    showFlash(`Logged ${s.name}!`);
-    fetchData();
-    refreshSaved();
+  // --- Saved exercise modal actions ---
+
+  const openModal = (s: SavedExercise) => {
+    setOpenSaved(s);
+    setEditingOpen(false);
   };
 
-  const startEdit = (s: SavedExercise) => {
-    setEditingId(s.id);
+  const closeModal = () => {
+    setOpenSaved(null);
+    setEditingOpen(false);
+  };
+
+  const startEditInModal = () => {
+    if (!openSaved) return;
     setEditForm({
-      name: s.name,
-      duration: String(s.defaultDuration),
-      calories: String(Math.round(s.defaultCalories)),
+      name: openSaved.name,
+      duration: String(openSaved.defaultDuration),
+      calories: String(Math.round(openSaved.defaultCalories)),
     });
+    setEditingOpen(true);
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditForm({ name: "", duration: "", calories: "" });
-  };
+  const cancelEditInModal = () => setEditingOpen(false);
 
-  const handleSaveEdit = async (id: number) => {
-    if (!editForm.name.trim()) return;
-    const res = await fetch(`/api/saved-exercise?id=${id}`, {
+  const handleSaveEdit = async () => {
+    if (!openSaved || !editForm.name.trim()) return;
+    setSavingEdit(true);
+    const res = await fetch(`/api/saved-exercise?id=${openSaved.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -179,25 +171,41 @@ export default function ExercisePage() {
         defaultCalories: parseFloat(editForm.calories) || 0,
       }),
     });
+    setSavingEdit(false);
     if (!res.ok) {
       showFlash(`✗ Could not save (${res.status})`, 6000);
       return;
     }
-    cancelEdit();
+    const updated: SavedExercise = await res.json();
+    setOpenSaved(updated);
+    setEditingOpen(false);
     refreshSaved();
     showFlash("Saved");
   };
 
-  const handleDeleteSaved = async (s: SavedExercise) => {
-    if (!confirm(`Remove "${s.name}" from your exercises? Past logs are unaffected.`)) return;
-    const res = await fetch(`/api/saved-exercise?id=${s.id}`, { method: "DELETE" });
+  const handleLogFromModal = () => {
+    if (!openSaved) return;
+    // Prefill the main log form so the user can adjust duration/calories
+    // before committing. They confirm by tapping ✧ Log Exercise ✧.
+    setName(openSaved.name);
+    setDuration(String(openSaved.defaultDuration));
+    setCalories(String(Math.round(openSaved.defaultCalories)));
+    setSelectedMet(null);
+    closeModal();
+    showFlash("Loaded into log form — adjust and tap Log Exercise");
+  };
+
+  const handleDeleteFromModal = async () => {
+    if (!openSaved) return;
+    if (!confirm(`Remove "${openSaved.name}"? Past logs are unaffected.`)) return;
+    const res = await fetch(`/api/saved-exercise?id=${openSaved.id}`, { method: "DELETE" });
     if (!res.ok) {
       showFlash(`✗ Could not remove (${res.status})`, 6000);
       return;
     }
-    if (selectedSavedId === s.id) setSelectedSavedId(null);
+    showFlash(`Removed ${openSaved.name}`);
+    closeModal();
     refreshSaved();
-    showFlash(`Removed ${s.name}`);
   };
 
   const totalBurned = exercises.reduce((s, e) => s + e.caloriesBurned, 0);
@@ -276,49 +284,22 @@ export default function ExercisePage() {
 
       {showSaved && saved.length > 0 && (
         <Window title="💾 My Exercises">
-          <div className="space-y-1" style={{ maxHeight: 360, overflowY: "auto" }}>
+          <div className="space-y-2" style={{ maxHeight: 360, overflowY: "auto" }}>
             {saved.map(s => (
-              <SavedRow
+              <button
                 key={s.id}
-                selected={selectedSavedId === s.id}
-                editing={editingId === s.id}
-                onSelect={() => setSelectedSavedId(selectedSavedId === s.id ? null : s.id)}
-                onLog={() => handleLogSaved(s)}
-                onEdit={() => startEdit(s)}
-                onDelete={() => handleDeleteSaved(s)}
-                primary={s.name}
-                secondary={`${s.defaultDuration} min · ${Math.round(s.defaultCalories)} kcal${s.lastUsedDate ? ` · last ${s.lastUsedDate}` : ""}`}
-                editForm={
-                  <>
-                    <input
-                      value={editForm.name}
-                      onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
-                      placeholder="Name"
-                      className="input"
-                    />
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        value={editForm.duration}
-                        onChange={e => setEditForm(f => ({ ...f, duration: e.target.value }))}
-                        placeholder="min"
-                        className="input flex-1 min-w-0"
-                      />
-                      <input
-                        type="number"
-                        value={editForm.calories}
-                        onChange={e => setEditForm(f => ({ ...f, calories: e.target.value }))}
-                        placeholder="kcal"
-                        className="input flex-1 min-w-0"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleSaveEdit(s.id)} className="btn-pink btn-sm flex-1">save</button>
-                      <button onClick={cancelEdit} className="btn-blue btn-sm flex-1">cancel</button>
-                    </div>
-                  </>
-                }
-              />
+                onClick={() => openModal(s)}
+                className="list-row w-full text-left"
+                style={{ cursor: "pointer", border: "none", background: "transparent" }}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold truncate">{s.name}</div>
+                  <div className="text-[10px]" style={{ color: "#9b80b8" }}>
+                    {s.defaultDuration} min · {Math.round(s.defaultCalories)} kcal
+                    {s.lastUsedDate && ` · last ${s.lastUsedDate}`}
+                  </div>
+                </div>
+              </button>
             ))}
           </div>
         </Window>
@@ -339,6 +320,74 @@ export default function ExercisePage() {
             </div>
           ))}
         </Window>
+      )}
+
+      {openSaved && (
+        <SavedItemModal
+          title={openSaved.name}
+          isEditing={editingOpen}
+          saving={savingEdit}
+          onClose={closeModal}
+          onLog={handleLogFromModal}
+          onEdit={startEditInModal}
+          onDelete={handleDeleteFromModal}
+          onSave={handleSaveEdit}
+          onCancelEdit={cancelEditInModal}
+          view={
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span style={{ color: "#9b80b8" }}>Default duration</span>
+                <strong>{openSaved.defaultDuration} min</strong>
+              </div>
+              <div className="flex justify-between">
+                <span style={{ color: "#9b80b8" }}>Default calories</span>
+                <strong>{Math.round(openSaved.defaultCalories)} kcal</strong>
+              </div>
+              {openSaved.lastUsedDate && (
+                <div className="flex justify-between">
+                  <span style={{ color: "#9b80b8" }}>Last used</span>
+                  <strong>{openSaved.lastUsedDate}</strong>
+                </div>
+              )}
+              <div className="flex justify-between text-xs pt-1" style={{ color: "#b098c8" }}>
+                <span>Log uses date:</span>
+                <span>{date}</span>
+              </div>
+            </div>
+          }
+          editForm={
+            <>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
+                <input
+                  value={editForm.name}
+                  onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                  className="input w-full"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 min-w-0">
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Duration (min)</label>
+                  <input
+                    type="number"
+                    value={editForm.duration}
+                    onChange={e => setEditForm(f => ({ ...f, duration: e.target.value }))}
+                    className="input w-full"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Calories</label>
+                  <input
+                    type="number"
+                    value={editForm.calories}
+                    onChange={e => setEditForm(f => ({ ...f, calories: e.target.value }))}
+                    className="input w-full"
+                  />
+                </div>
+              </div>
+            </>
+          }
+        />
       )}
     </div>
   );
