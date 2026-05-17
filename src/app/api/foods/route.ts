@@ -55,6 +55,52 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const idParam = req.nextUrl.searchParams.get("id");
+  if (!idParam) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  const id = parseInt(idParam, 10);
+  if (!Number.isFinite(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+
+  const existing = await prisma.food.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Food not found" }, { status: 404 });
+  if (existing.userId !== session.userId) {
+    return NextResponse.json({ error: "Cannot edit a global or another user's food" }, { status: 403 });
+  }
+
+  try {
+    const body = await req.json();
+    const data: {
+      name?: string; brand?: string | null;
+      calories?: number; protein?: number; carbs?: number; fat?: number;
+      fiber?: number; sugar?: number; serving?: number; unit?: string;
+    } = {};
+    if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim();
+    if (typeof body.brand === "string") data.brand = body.brand.trim() || null;
+    if (typeof body.calories === "number" && isFinite(body.calories)) data.calories = body.calories;
+    if (typeof body.protein === "number" && isFinite(body.protein)) data.protein = body.protein;
+    if (typeof body.carbs === "number" && isFinite(body.carbs)) data.carbs = body.carbs;
+    if (typeof body.fat === "number" && isFinite(body.fat)) data.fat = body.fat;
+    if (typeof body.fiber === "number" && isFinite(body.fiber)) data.fiber = body.fiber;
+    if (typeof body.sugar === "number" && isFinite(body.sugar)) data.sugar = body.sugar;
+    if (typeof body.serving === "number" && isFinite(body.serving) && body.serving > 0) data.serving = body.serving;
+    if (typeof body.unit === "string" && body.unit) data.unit = body.unit;
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+    }
+
+    const updated = await prisma.food.update({ where: { id }, data });
+    return NextResponse.json(updated);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[/api/foods PATCH] failed:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

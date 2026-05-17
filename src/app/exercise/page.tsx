@@ -220,11 +220,8 @@ export default function ExercisePage() {
 
       {saved.length > 0 && (
         <Window title={`💾 My Exercises (${saved.length})`}>
-          <div className="flex justify-between items-center mb-2 gap-2">
-            <p className="text-xs flex-1 min-w-0" style={{ color: "#9b80b8" }}>
-              Tap a row to load it into the form. Edit or remove to manage the list — past logs stay intact.
-            </p>
-            <button onClick={() => setShowSaved(!showSaved)} className="btn-blue btn-sm text-xs shrink-0">
+          <div className="flex justify-end mb-2">
+            <button onClick={() => setShowSaved(!showSaved)} className="btn-blue btn-sm text-xs">
               {showSaved ? "hide" : "show"}
             </button>
           </div>

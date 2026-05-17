@@ -54,6 +54,10 @@ export default function LogPage() {
   const [custom, setCustom] = useState({
     name: "", brand: "", calories: "", protein: "", carbs: "", fat: "", serving: "",
   });
+  const [editingFoodId, setEditingFoodId] = useState<number | null>(null);
+  const [editFood, setEditFood] = useState({
+    name: "", brand: "", calories: "", protein: "", carbs: "", fat: "", serving: "",
+  });
   const ref = useRef<HTMLInputElement>(null);
 
   const myFoods = foods.filter(f => f.userId !== null);
@@ -234,6 +238,60 @@ export default function LogPage() {
     setSaving(false);
   };
 
+  const startEditFood = (food: Food) => {
+    setEditingFoodId(food.id);
+    // Macros in DB are per 100g; display them rescaled to the food's serving
+    // so the form matches what the user originally entered.
+    const s = food.serving || 100;
+    setEditFood({
+      name: food.name,
+      brand: food.brand ?? "",
+      calories: String(Math.round((food.calories * s) / 100 * 10) / 10),
+      protein: String(Math.round((food.protein * s) / 100 * 10) / 10),
+      carbs: String(Math.round((food.carbs * s) / 100 * 10) / 10),
+      fat: String(Math.round((food.fat * s) / 100 * 10) / 10),
+      serving: String(s),
+    });
+  };
+
+  const cancelEditFood = () => {
+    setEditingFoodId(null);
+    setEditFood({ name: "", brand: "", calories: "", protein: "", carbs: "", fat: "", serving: "" });
+  };
+
+  const handleSaveEditFood = async (id: number) => {
+    if (!editFood.name.trim()) return;
+    const s = parseFloat(editFood.serving) || 100;
+    const payload = {
+      name: editFood.name.trim(),
+      brand: editFood.brand.trim() || "Custom",
+      serving: s,
+      // Convert per-serving values back into per-100g.
+      calories: (parseFloat(editFood.calories) || 0) * 100 / s,
+      protein: (parseFloat(editFood.protein) || 0) * 100 / s,
+      carbs: (parseFloat(editFood.carbs) || 0) * 100 / s,
+      fat: (parseFloat(editFood.fat) || 0) * 100 / s,
+    };
+    try {
+      const res = await fetch(`/api/foods?id=${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        showFlash(`✗ Edit failed (${res.status})${body?.error ? ": " + body.error : ""}`, 6000);
+        return;
+      }
+      const updated: Food = await res.json();
+      setFoods(prev => prev.map(f => f.id === id ? { ...f, ...updated } : f));
+      cancelEditFood();
+      showFlash(`Updated ${updated.name}`);
+    } catch (e) {
+      showFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`, 6000);
+    }
+  };
+
   const handleDeleteFood = async (food: Food) => {
     try {
       const res = await fetch(`/api/foods?id=${food.id}`, { method: "DELETE" });
@@ -412,9 +470,6 @@ export default function LogPage() {
 
       {showRecurring && (
         <Window title="🔁 Daily Recurring">
-          <p className="text-xs mb-2" style={{ color: "#9b80b8" }}>
-            Auto-logs each day. Add by picking a food above, setting amount/meal, then tapping <strong>Add as daily</strong>. Today&apos;s logs are created when you open this page.
-          </p>
           {recurring.length === 0 ? (
             <p className="vt-text text-center py-3">none yet ~</p>
           ) : (
@@ -440,14 +495,52 @@ export default function LogPage() {
 
       {showManage && myFoods.length > 0 && (
         <Window title="✧ My Custom Foods">
-          <p className="text-xs mb-2" style={{ color: "#9b80b8" }}>
-            Foods you added. Removing hides one from search; existing logs stay intact with their original macros.
-          </p>
-          <div className="space-y-1" style={{ maxHeight: 360, overflowY: "auto" }}>
+          <div className="space-y-1" style={{ maxHeight: 480, overflowY: "auto" }}>
             {myFoods
               .slice()
               .sort((a, b) => a.name.localeCompare(b.name))
-              .map(food => (
+              .map(food => editingFoodId === food.id ? (
+                <div key={`mine-${food.id}`} className="list-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
+                      <input value={editFood.name} onChange={e => setEditFood(f => ({ ...f, name: e.target.value }))} className="input" />
+                    </div>
+                    <div>
+                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Brand</label>
+                      <input value={editFood.brand} onChange={e => setEditFood(f => ({ ...f, brand: e.target.value }))} className="input" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Calories (per serving)</label>
+                      <input type="number" value={editFood.calories} onChange={e => setEditFood(f => ({ ...f, calories: e.target.value }))} className="input" />
+                    </div>
+                    <div>
+                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Serving size (g)</label>
+                      <input type="number" value={editFood.serving} onChange={e => setEditFood(f => ({ ...f, serving: e.target.value }))} className="input" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Protein</label>
+                      <input type="number" value={editFood.protein} onChange={e => setEditFood(f => ({ ...f, protein: e.target.value }))} className="input" />
+                    </div>
+                    <div>
+                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Carbs</label>
+                      <input type="number" value={editFood.carbs} onChange={e => setEditFood(f => ({ ...f, carbs: e.target.value }))} className="input" />
+                    </div>
+                    <div>
+                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Fat</label>
+                      <input type="number" value={editFood.fat} onChange={e => setEditFood(f => ({ ...f, fat: e.target.value }))} className="input" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleSaveEditFood(food.id)} className="btn-pink btn-sm flex-1">save</button>
+                    <button onClick={cancelEditFood} className="btn-blue btn-sm flex-1">cancel</button>
+                  </div>
+                </div>
+              ) : (
                 <div key={`mine-${food.id}`} className="list-row">
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold truncate">{food.name}</div>
@@ -456,11 +549,10 @@ export default function LogPage() {
                       {Math.round(food.calories * food.serving / 100)} kcal / {food.serving}{food.unit}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDeleteFood(food)}
-                    className="delete-btn"
-                    title="Remove this food"
-                  >×</button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => startEditFood(food)} className="delete-btn" title="Edit" style={{ background: "#ede0f5", color: "#7c3aed" }}>✎</button>
+                    <button onClick={() => handleDeleteFood(food)} className="delete-btn" title="Remove">×</button>
+                  </div>
                 </div>
               ))}
           </div>
@@ -470,9 +562,6 @@ export default function LogPage() {
       {showCustom && (
         <Window title="✧ Custom Food">
           <div className="space-y-3">
-            <p className="text-xs" style={{ color: "#9b80b8" }}>
-              Saves to your foods. Then search for it above to log a serving — pick your portion before logging.
-            </p>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
