@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Window from "@/components/Window";
+import SavedRow from "@/components/SavedRow";
 import { todayStr } from "@/lib/helpers";
 
 interface Exercise {
@@ -47,6 +48,7 @@ export default function ExercisePage() {
   const [userWeight, setUserWeight] = useState<number>(135);
   const [selectedMet, setSelectedMet] = useState<number | null>(null);
   const [showSaved, setShowSaved] = useState(false);
+  const [selectedSavedId, setSelectedSavedId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ name: "", duration: "", calories: "" });
 
@@ -79,13 +81,6 @@ export default function ExercisePage() {
     setSelectedMet(preset.met);
     const dur = parseInt(duration) || 30;
     setCalories(String(calcBurn(preset.met, userWeight, dur)));
-  };
-
-  const pickSaved = (s: SavedExercise) => {
-    setName(s.name);
-    setDuration(String(s.defaultDuration));
-    setCalories(String(Math.round(s.defaultCalories)));
-    setSelectedMet(null);
   };
 
   const handleDurationChange = (val: string) => {
@@ -139,6 +134,26 @@ export default function ExercisePage() {
     fetchData();
   };
 
+  const handleLogSaved = async (s: SavedExercise) => {
+    const res = await fetch("/api/exercise", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: s.name,
+        caloriesBurned: s.defaultCalories,
+        duration: s.defaultDuration,
+        date,
+      }),
+    });
+    if (!res.ok) {
+      showFlash(`✗ Could not log (${res.status})`, 6000);
+      return;
+    }
+    showFlash(`Logged ${s.name}!`);
+    fetchData();
+    refreshSaved();
+  };
+
   const startEdit = (s: SavedExercise) => {
     setEditingId(s.id);
     setEditForm({
@@ -180,6 +195,7 @@ export default function ExercisePage() {
       showFlash(`✗ Could not remove (${res.status})`, 6000);
       return;
     }
+    if (selectedSavedId === s.id) setSelectedSavedId(null);
     refreshSaved();
     showFlash(`Removed ${s.name}`);
   };
@@ -218,68 +234,6 @@ export default function ExercisePage() {
         </div>
       </Window>
 
-      {saved.length > 0 && (
-        <Window title={`💾 My Exercises (${saved.length})`}>
-          <div className="flex justify-end mb-2">
-            <button onClick={() => setShowSaved(!showSaved)} className="btn-blue btn-sm text-xs">
-              {showSaved ? "hide" : "show"}
-            </button>
-          </div>
-          {showSaved && (
-            <div className="space-y-1" style={{ maxHeight: 280, overflowY: "auto" }}>
-              {saved.map(s => editingId === s.id ? (
-                <div key={s.id} className="list-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
-                  <input
-                    value={editForm.name}
-                    onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="Name"
-                    className="input"
-                  />
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      value={editForm.duration}
-                      onChange={e => setEditForm(f => ({ ...f, duration: e.target.value }))}
-                      placeholder="min"
-                      className="input flex-1 min-w-0"
-                    />
-                    <input
-                      type="number"
-                      value={editForm.calories}
-                      onChange={e => setEditForm(f => ({ ...f, calories: e.target.value }))}
-                      placeholder="kcal"
-                      className="input flex-1 min-w-0"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleSaveEdit(s.id)} className="btn-pink btn-sm flex-1">save</button>
-                    <button onClick={cancelEdit} className="btn-blue btn-sm flex-1">cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <div key={s.id} className="list-row">
-                  <button
-                    onClick={() => pickSaved(s)}
-                    className="flex-1 min-w-0 text-left"
-                    style={{ cursor: "pointer", border: "none", background: "transparent", padding: 0 }}
-                  >
-                    <div className="text-sm font-semibold truncate">{s.name}</div>
-                    <div className="text-[10px]" style={{ color: "#9b80b8" }}>
-                      {s.defaultDuration} min · {Math.round(s.defaultCalories)} kcal
-                      {s.lastUsedDate && ` · last ${s.lastUsedDate}`}
-                    </div>
-                  </button>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => startEdit(s)} className="delete-btn" title="Edit" style={{ background: "#ede0f5", color: "#7c3aed" }}>✎</button>
-                    <button onClick={() => handleDeleteSaved(s)} className="delete-btn" title="Remove">×</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Window>
-      )}
-
       <Window title="📝 Log Exercise">
         <div className="space-y-3">
           <div>
@@ -307,10 +261,68 @@ export default function ExercisePage() {
             ✧ Log Exercise ✧
           </button>
           <button onClick={handleSaveTemplate} disabled={!name} className="btn-blue w-full">
-            ✧ Save to My Exercises (no log) ✧
+            ✧ Save to My Exercises ✧
           </button>
         </div>
       </Window>
+
+      {saved.length > 0 && (
+        <div className="text-center">
+          <button onClick={() => setShowSaved(!showSaved)} className="btn-blue btn-sm">
+            {showSaved ? "hide" : `✧ My Exercises (${saved.length}) ✧`}
+          </button>
+        </div>
+      )}
+
+      {showSaved && saved.length > 0 && (
+        <Window title="💾 My Exercises">
+          <div className="space-y-1" style={{ maxHeight: 360, overflowY: "auto" }}>
+            {saved.map(s => (
+              <SavedRow
+                key={s.id}
+                selected={selectedSavedId === s.id}
+                editing={editingId === s.id}
+                onSelect={() => setSelectedSavedId(selectedSavedId === s.id ? null : s.id)}
+                onLog={() => handleLogSaved(s)}
+                onEdit={() => startEdit(s)}
+                onDelete={() => handleDeleteSaved(s)}
+                primary={s.name}
+                secondary={`${s.defaultDuration} min · ${Math.round(s.defaultCalories)} kcal${s.lastUsedDate ? ` · last ${s.lastUsedDate}` : ""}`}
+                editForm={
+                  <>
+                    <input
+                      value={editForm.name}
+                      onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                      placeholder="Name"
+                      className="input"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={editForm.duration}
+                        onChange={e => setEditForm(f => ({ ...f, duration: e.target.value }))}
+                        placeholder="min"
+                        className="input flex-1 min-w-0"
+                      />
+                      <input
+                        type="number"
+                        value={editForm.calories}
+                        onChange={e => setEditForm(f => ({ ...f, calories: e.target.value }))}
+                        placeholder="kcal"
+                        className="input flex-1 min-w-0"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleSaveEdit(s.id)} className="btn-pink btn-sm flex-1">save</button>
+                      <button onClick={cancelEdit} className="btn-blue btn-sm flex-1">cancel</button>
+                    </div>
+                  </>
+                }
+              />
+            ))}
+          </div>
+        </Window>
+      )}
 
       {exercises.length > 0 && (
         <Window title={`🔥 Exercise Log — ${totalBurned} kcal burned`}>

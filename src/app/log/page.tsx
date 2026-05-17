@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Window from "@/components/Window";
+import SavedRow from "@/components/SavedRow";
 import { todayStr, calcMacros } from "@/lib/helpers";
 
 interface Food {
@@ -58,6 +59,7 @@ export default function LogPage() {
   const [editFood, setEditFood] = useState({
     name: "", brand: "", calories: "", protein: "", carbs: "", fat: "", serving: "",
   });
+  const [selectedSavedFoodId, setSelectedSavedFoodId] = useState<number | null>(null);
   const ref = useRef<HTMLInputElement>(null);
 
   const myFoods = foods.filter(f => f.userId !== null);
@@ -292,6 +294,29 @@ export default function LogPage() {
     }
   };
 
+  const handleLogSavedFood = async (food: Food) => {
+    try {
+      const res = await fetch("/api/logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          foodId: food.id,
+          amount: food.serving,
+          meal,
+          date,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        showFlash(`✗ Save failed (${res.status})${body?.error ? ": " + body.error : ""}`, 6000);
+        return;
+      }
+      showFlash(`Logged ${food.name}!`);
+    } catch (e) {
+      showFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`, 6000);
+    }
+  };
+
   const handleDeleteFood = async (food: Food) => {
     try {
       const res = await fetch(`/api/foods?id=${food.id}`, { method: "DELETE" });
@@ -302,7 +327,8 @@ export default function LogPage() {
       }
       setFoods(prev => prev.filter(f => f.id !== food.id));
       setRecurring(prev => prev.filter(r => r.foodId !== food.id));
-      showFlash(`Removed ${food.name} (existing logs kept)`);
+      if (selectedSavedFoodId === food.id) setSelectedSavedFoodId(null);
+      showFlash(`Removed ${food.name}`);
     } catch (e) {
       showFlash(`✗ Network error: ${e instanceof Error ? e.message : "unknown"}`, 6000);
     }
@@ -499,61 +525,60 @@ export default function LogPage() {
             {myFoods
               .slice()
               .sort((a, b) => a.name.localeCompare(b.name))
-              .map(food => editingFoodId === food.id ? (
-                <div key={`mine-${food.id}`} className="list-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
-                      <input value={editFood.name} onChange={e => setEditFood(f => ({ ...f, name: e.target.value }))} className="input" />
-                    </div>
-                    <div>
-                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Brand</label>
-                      <input value={editFood.brand} onChange={e => setEditFood(f => ({ ...f, brand: e.target.value }))} className="input" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Calories (per serving)</label>
-                      <input type="number" value={editFood.calories} onChange={e => setEditFood(f => ({ ...f, calories: e.target.value }))} className="input" />
-                    </div>
-                    <div>
-                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Serving size (g)</label>
-                      <input type="number" value={editFood.serving} onChange={e => setEditFood(f => ({ ...f, serving: e.target.value }))} className="input" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Protein</label>
-                      <input type="number" value={editFood.protein} onChange={e => setEditFood(f => ({ ...f, protein: e.target.value }))} className="input" />
-                    </div>
-                    <div>
-                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Carbs</label>
-                      <input type="number" value={editFood.carbs} onChange={e => setEditFood(f => ({ ...f, carbs: e.target.value }))} className="input" />
-                    </div>
-                    <div>
-                      <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Fat</label>
-                      <input type="number" value={editFood.fat} onChange={e => setEditFood(f => ({ ...f, fat: e.target.value }))} className="input" />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleSaveEditFood(food.id)} className="btn-pink btn-sm flex-1">save</button>
-                    <button onClick={cancelEditFood} className="btn-blue btn-sm flex-1">cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <div key={`mine-${food.id}`} className="list-row">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold truncate">{food.name}</div>
-                    <div className="text-[10px]" style={{ color: "#9b80b8" }}>
-                      {food.brand && food.brand !== "Custom" ? `${food.brand} · ` : ""}
-                      {Math.round(food.calories * food.serving / 100)} kcal / {food.serving}{food.unit}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => startEditFood(food)} className="delete-btn" title="Edit" style={{ background: "#ede0f5", color: "#7c3aed" }}>✎</button>
-                    <button onClick={() => handleDeleteFood(food)} className="delete-btn" title="Remove">×</button>
-                  </div>
-                </div>
+              .map(food => (
+                <SavedRow
+                  key={`mine-${food.id}`}
+                  selected={selectedSavedFoodId === food.id}
+                  editing={editingFoodId === food.id}
+                  onSelect={() => setSelectedSavedFoodId(selectedSavedFoodId === food.id ? null : food.id)}
+                  onLog={() => handleLogSavedFood(food)}
+                  onEdit={() => startEditFood(food)}
+                  onDelete={() => handleDeleteFood(food)}
+                  primary={food.name}
+                  secondary={`${food.brand && food.brand !== "Custom" ? `${food.brand} · ` : ""}${Math.round(food.calories * food.serving / 100)} kcal / ${food.serving}${food.unit}`}
+                  editForm={
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Name</label>
+                          <input value={editFood.name} onChange={e => setEditFood(f => ({ ...f, name: e.target.value }))} className="input" />
+                        </div>
+                        <div>
+                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Brand</label>
+                          <input value={editFood.brand} onChange={e => setEditFood(f => ({ ...f, brand: e.target.value }))} className="input" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Calories (per serving)</label>
+                          <input type="number" value={editFood.calories} onChange={e => setEditFood(f => ({ ...f, calories: e.target.value }))} className="input" />
+                        </div>
+                        <div>
+                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Serving size (g)</label>
+                          <input type="number" value={editFood.serving} onChange={e => setEditFood(f => ({ ...f, serving: e.target.value }))} className="input" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Protein</label>
+                          <input type="number" value={editFood.protein} onChange={e => setEditFood(f => ({ ...f, protein: e.target.value }))} className="input" />
+                        </div>
+                        <div>
+                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Carbs</label>
+                          <input type="number" value={editFood.carbs} onChange={e => setEditFood(f => ({ ...f, carbs: e.target.value }))} className="input" />
+                        </div>
+                        <div>
+                          <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Fat</label>
+                          <input type="number" value={editFood.fat} onChange={e => setEditFood(f => ({ ...f, fat: e.target.value }))} className="input" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleSaveEditFood(food.id)} className="btn-pink btn-sm flex-1">save</button>
+                        <button onClick={cancelEditFood} className="btn-blue btn-sm flex-1">cancel</button>
+                      </div>
+                    </>
+                  }
+                />
               ))}
           </div>
         </Window>
