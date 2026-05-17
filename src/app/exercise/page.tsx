@@ -46,7 +46,7 @@ export default function ExercisePage() {
   const [flash, setFlash] = useState("");
   const [userWeight, setUserWeight] = useState<number>(135);
   const [selectedMet, setSelectedMet] = useState<number | null>(null);
-  const [showSaved, setShowSaved] = useState(true);
+  const [showSaved, setShowSaved] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ name: "", duration: "", calories: "" });
 
