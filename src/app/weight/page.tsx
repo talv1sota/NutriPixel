@@ -5,7 +5,7 @@ import Window from "@/components/Window";
 import { todayStr, formatDate } from "@/lib/helpers";
 
 interface WeightEntry { id: number; weight: number; date: string; }
-interface Goal { targetWeight: number | null; unit: string; }
+interface Goal { targetWeight: number | null; unit: string; heightUnit: string; }
 
 export default function WeightPage() {
   const [entries, setEntries] = useState<WeightEntry[]>([]);
@@ -41,6 +41,20 @@ export default function WeightPage() {
   };
 
   const unit = goal?.unit || "lbs";
+  const heightUnit = goal?.heightUnit || "in";
+  const unitSystem: "metric" | "imperial" = unit === "kg" && heightUnit === "cm" ? "metric" : "imperial";
+
+  const setUnitSystem = async (sys: "metric" | "imperial") => {
+    const next = sys === "metric"
+      ? { unit: "kg", heightUnit: "cm" }
+      : { unit: "lbs", heightUnit: "in" };
+    await fetch("/api/goals", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next),
+    });
+    fetchData();
+  };
   const current = entries.length > 0 ? entries[entries.length - 1].weight : null;
   const target = goal?.targetWeight;
   const diff = current && target ? current - target : null;
@@ -70,6 +84,18 @@ export default function WeightPage() {
           </div>
         </div>
       )}
+
+      {/* Unit system */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setUnitSystem("imperial")}
+          className={`btn-sm flex-1 text-xs ${unitSystem === "imperial" ? "btn-pink" : "btn-blue"}`}
+        >Imperial (lbs, in)</button>
+        <button
+          onClick={() => setUnitSystem("metric")}
+          className={`btn-sm flex-1 text-xs ${unitSystem === "metric" ? "btn-pink" : "btn-blue"}`}
+        >Metric (kg, cm)</button>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Window from "@/components/Window";
-import { activityLabels, calcBMR, calcTDEE } from "@/lib/helpers";
+import { activityLabels, calcBMR, calcTDEE, toLbs, toIn } from "@/lib/helpers";
 
 interface Goal {
   id: number; goalType: string;
@@ -110,11 +110,23 @@ export default function GoalsPage() {
 
   const u = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
-  // Calculate TDEE for presets
+  const unitSystem: "metric" | "imperial" = form.unit === "kg" && form.heightUnit === "cm" ? "metric" : "imperial";
+  const setUnitSystem = (sys: "metric" | "imperial") => {
+    setForm(f => ({
+      ...f,
+      unit: sys === "metric" ? "kg" : "lbs",
+      heightUnit: sys === "metric" ? "cm" : "in",
+    }));
+  };
+
+  // Calculate TDEE for presets — normalize to imperial since calc helpers expect lbs/in.
   const currentW = form.currentWeight ? parseFloat(form.currentWeight) : latestWeight;
   const canCalc = currentW && form.height && form.age;
-  const heightIn = form.heightUnit === "cm" ? parseFloat(form.height) / 2.54 : parseFloat(form.height);
-  const bmr = canCalc ? calcBMR(currentW, heightIn, parseInt(form.age), form.gender) : null;
+  const weightLbs = currentW != null ? toLbs(currentW, form.unit) : null;
+  const heightIn = form.height ? toIn(parseFloat(form.height), form.heightUnit) : null;
+  const bmr = canCalc && weightLbs != null && heightIn != null
+    ? calcBMR(weightLbs, heightIn, parseInt(form.age), form.gender)
+    : null;
   const tdee = bmr ? calcTDEE(bmr, form.activityLevel) : null;
 
   // Weight plan
@@ -198,6 +210,19 @@ export default function GoalsPage() {
       {/* Profile */}
       <Window title="👤 Profile">
         <div className="space-y-3">
+          <div>
+            <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Unit System</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setUnitSystem("imperial")}
+                className={`btn-sm flex-1 text-xs ${unitSystem === "imperial" ? "btn-pink" : "btn-blue"}`}
+              >Imperial (lbs, in)</button>
+              <button
+                onClick={() => setUnitSystem("metric")}
+                className={`btn-sm flex-1 text-xs ${unitSystem === "metric" ? "btn-pink" : "btn-blue"}`}
+              >Metric (kg, cm)</button>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Gender</label>
@@ -212,20 +237,12 @@ export default function GoalsPage() {
                 placeholder="25" className="input" min="1" />
             </div>
           </div>
-          <div className="flex gap-3 items-end">
-            <div className="flex-1 min-w-0">
-              <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>
-                Height {heightDisplay && <span style={{ color: "#9b5de5" }}>({heightDisplay})</span>}
-              </label>
-              <input type="number" value={form.height} onChange={e => u("height", e.target.value)}
-                placeholder={form.heightUnit === "in" ? "e.g. 63" : "e.g. 160"} className="input" />
-            </div>
-            <div className="shrink-0">
-              <select value={form.heightUnit} onChange={e => u("heightUnit", e.target.value)} className="select">
-                <option value="in">inches</option>
-                <option value="cm">cm</option>
-              </select>
-            </div>
+          <div>
+            <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>
+              Height ({form.heightUnit}) {heightDisplay && <span style={{ color: "#9b5de5" }}>{heightDisplay}</span>}
+            </label>
+            <input type="number" value={form.height} onChange={e => u("height", e.target.value)}
+              placeholder={form.heightUnit === "in" ? "e.g. 63" : "e.g. 160"} className="input" />
           </div>
           <div>
             <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Current Weight ({form.unit})</label>
@@ -272,19 +289,10 @@ export default function GoalsPage() {
 
           {form.goalType !== "maintain" && (
             <>
-              <div className="flex gap-3">
-                <div className="flex-1 min-w-0">
-                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Target Weight</label>
-                  <input type="number" value={form.targetWeight} onChange={e => u("targetWeight", e.target.value)}
-                    placeholder="e.g. 125" className="input" step="0.1" />
-                </div>
-                <div className="shrink-0">
-                  <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Unit</label>
-                  <select value={form.unit} onChange={e => u("unit", e.target.value)} className="select">
-                    <option value="lbs">lbs</option>
-                    <option value="kg">kg</option>
-                  </select>
-                </div>
+              <div>
+                <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Target Weight ({form.unit})</label>
+                <input type="number" value={form.targetWeight} onChange={e => u("targetWeight", e.target.value)}
+                  placeholder="e.g. 125" className="input" step="0.1" />
               </div>
               <div className="min-w-0">
                 <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>Target Date (optional)</label>

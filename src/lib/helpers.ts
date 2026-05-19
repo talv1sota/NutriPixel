@@ -27,6 +27,16 @@ export function calcBMI(weightLbs: number, heightIn: number) {
   return Math.round((kg / (m * m)) * 10) / 10;
 }
 
+// Normalize a value coming from the user-selected unit system into the
+// imperial inputs that calcBMI / calcBMR expect. Storage keeps the raw
+// number the user typed; these helpers convert just for calculation.
+export function toLbs(weight: number, unit: string | null | undefined) {
+  return unit === "kg" ? weight * 2.20462 : weight;
+}
+export function toIn(height: number, heightUnit: string | null | undefined) {
+  return heightUnit === "cm" ? height / 2.54 : height;
+}
+
 export function bmiCategory(bmi: number) {
   if (bmi < 18.5) return { label: "Underweight", color: "#5bb8e8" };
   if (bmi < 25) return { label: "Normal", color: "#6bcb77" };

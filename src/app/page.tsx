@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Window from "@/components/Window";
 import MacroRing from "@/components/MacroRing";
 import ProgressBar from "@/components/ProgressBar";
-import { todayStr, calcMacros, formatDate, calcBMI, bmiCategory, calcBMR, calcTDEE } from "@/lib/helpers";
+import { todayStr, calcMacros, formatDate, calcBMI, bmiCategory, calcBMR, calcTDEE, toLbs, toIn } from "@/lib/helpers";
 
 interface Food {
   id: number; name: string; brand: string | null;
@@ -24,7 +24,8 @@ interface Goal {
   targetCalories: number | null; targetProtein: number | null;
   targetCarbs: number | null; targetFat: number | null;
   minProtein: number | null; minCarbs: number | null; minFat: number | null;
-  height: number | null; gender: string; age: number | null;
+  height: number | null; heightUnit: string;
+  gender: string; age: number | null;
   activityLevel: string; unit: string; targetWeight: number | null;
 }
 
@@ -97,10 +98,12 @@ export default function Dashboard() {
       .filter((b) => b.value > 0)
       .sort((a, b) => b.value - a.value);
 
-  // BMI / BMR / TDEE
+  // BMI / BMR / TDEE — normalize to imperial regardless of user unit setting.
   const canCalcBody = latestWeight && goal?.height && goal?.age;
-  const bmi = canCalcBody ? calcBMI(latestWeight, goal.height!) : null;
-  const bmr = canCalcBody ? calcBMR(latestWeight, goal.height!, goal.age!, goal.gender) : null;
+  const weightLbs = canCalcBody ? toLbs(latestWeight, goal!.unit) : null;
+  const heightIn = canCalcBody ? toIn(goal!.height!, goal!.heightUnit) : null;
+  const bmi = canCalcBody ? calcBMI(weightLbs!, heightIn!) : null;
+  const bmr = canCalcBody ? calcBMR(weightLbs!, heightIn!, goal!.age!, goal!.gender) : null;
   const tdee = bmr ? calcTDEE(bmr, goal!.activityLevel) : null;
   const bmiInfo = bmi ? bmiCategory(bmi) : null;
 
