@@ -45,13 +45,10 @@ export default function WeightPage() {
   const unitSystem: "metric" | "imperial" = unit === "kg" && heightUnit === "cm" ? "metric" : "imperial";
 
   const setUnitSystem = async (sys: "metric" | "imperial") => {
-    const next = sys === "metric"
-      ? { unit: "kg", heightUnit: "cm" }
-      : { unit: "lbs", heightUnit: "in" };
-    await fetch("/api/goals", {
-      method: "PUT",
+    await fetch("/api/unit-system", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(next),
+      body: JSON.stringify({ system: sys }),
     });
     fetchData();
   };

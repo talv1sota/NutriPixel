@@ -111,12 +111,33 @@ export default function GoalsPage() {
   const u = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   const unitSystem: "metric" | "imperial" = form.unit === "kg" && form.heightUnit === "cm" ? "metric" : "imperial";
-  const setUnitSystem = (sys: "metric" | "imperial") => {
+
+  const setUnitSystem = async (sys: "metric" | "imperial") => {
+    if (sys === unitSystem) return;
+    const weightFactor = sys === "metric" ? 0.453592 : 2.20462;
+    const heightFactor = sys === "metric" ? 2.54 : 1 / 2.54;
+    const conv = (s: string, factor: number) => {
+      const n = parseFloat(s);
+      if (!isFinite(n)) return s;
+      return String(Math.round(n * factor * 10) / 10);
+    };
     setForm(f => ({
       ...f,
       unit: sys === "metric" ? "kg" : "lbs",
       heightUnit: sys === "metric" ? "cm" : "in",
+      currentWeight: conv(f.currentWeight, weightFactor),
+      targetWeight: conv(f.targetWeight, weightFactor),
+      height: conv(f.height, heightFactor),
     }));
+    // Persist server-side too: rewrites goal + every WeightEntry so the
+    // weight page / dashboard pick up consistent numbers on next fetch.
+    await fetch("/api/unit-system", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ system: sys }),
+    });
+    const ws: { weight: number }[] = await fetch("/api/weight").then(r => r.json());
+    if (ws.length > 0) setLatestWeight(ws[ws.length - 1].weight);
   };
 
   // Calculate TDEE for presets — normalize to imperial since calc helpers expect lbs/in.

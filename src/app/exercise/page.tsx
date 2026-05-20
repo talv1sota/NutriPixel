@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Window from "@/components/Window";
 import SavedItemModal from "@/components/SavedItemModal";
-import { todayStr } from "@/lib/helpers";
+import { todayStr, toLbs } from "@/lib/helpers";
 
 interface Exercise {
   id: number; name: string; caloriesBurned: number; duration: number; date: string;
@@ -46,6 +46,7 @@ export default function ExercisePage() {
   const [date, setDate] = useState(todayStr());
   const [flash, setFlash] = useState("");
   const [userWeight, setUserWeight] = useState<number>(135);
+  const [weightUnit, setWeightUnit] = useState<string>("lbs");
   const [selectedMet, setSelectedMet] = useState<number | null>(null);
   const [showSaved, setShowSaved] = useState(false);
   const [openSaved, setOpenSaved] = useState<SavedExercise | null>(null);
@@ -57,7 +58,13 @@ export default function ExercisePage() {
     fetch("/api/weight").then(r => r.json()).then((ws: { weight: number }[]) => {
       if (ws.length > 0) setUserWeight(ws[ws.length - 1].weight);
     });
+    fetch("/api/goals").then(r => r.json()).then((g: { unit?: string }) => {
+      if (g?.unit) setWeightUnit(g.unit);
+    });
   }, []);
+
+  // calcBurn needs lbs; convert if the user is on metric.
+  const userWeightLbs = toLbs(userWeight, weightUnit);
 
   const refreshSaved = useCallback(async () => {
     const list: SavedExercise[] = await fetch("/api/saved-exercise").then(r => r.json());
@@ -81,13 +88,13 @@ export default function ExercisePage() {
     setName(preset.name);
     setSelectedMet(preset.met);
     const dur = parseInt(duration) || 30;
-    setCalories(String(calcBurn(preset.met, userWeight, dur)));
+    setCalories(String(calcBurn(preset.met, userWeightLbs, dur)));
   };
 
   const handleDurationChange = (val: string) => {
     setDuration(val);
     if (selectedMet) {
-      setCalories(String(calcBurn(selectedMet, userWeight, parseInt(val) || 30)));
+      setCalories(String(calcBurn(selectedMet, userWeightLbs, parseInt(val) || 30)));
     }
   };
 
@@ -222,7 +229,7 @@ export default function ExercisePage() {
       )}
 
       <div className="text-xs text-center" style={{ color: "#9b80b8" }}>
-        Calorie burn calculated for <strong>{userWeight} lbs</strong> body weight
+        Calorie burn calculated for <strong>{userWeight} {weightUnit}</strong> body weight
       </div>
 
       <Window title="🏃 Quick Pick">
@@ -234,7 +241,7 @@ export default function ExercisePage() {
               {p.name}
               <br />
               <span style={{ fontSize: 9, opacity: 0.7 }}>
-                ~{calcBurn(p.met, userWeight, parseInt(duration) || 30)} cal/{duration || 30}m
+                ~{calcBurn(p.met, userWeightLbs, parseInt(duration) || 30)} cal/{duration || 30}m
               </span>
             </button>
           ))}

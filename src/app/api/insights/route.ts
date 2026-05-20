@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { resolveFood } from "@/lib/foodLogs";
+import { toLbs, toIn } from "@/lib/helpers";
 
 function dateNDaysAgo(n: number) {
   const d = new Date();
@@ -347,11 +348,12 @@ export async function GET() {
     const weekAvgNet = Math.round(pastWeekDays.reduce((s, d) => s + d.net, 0) / pastWeekDays.length);
     const weekBurned = pastWeekDays.reduce((s, d) => s + d.burned, 0);
 
-    // Estimate TDEE from goal profile or rough estimate
-    const heightIn = goal.height || 64;
+    // Estimate TDEE from goal profile, normalizing to imperial first.
+    const heightInNorm = goal.height ? toIn(goal.height, goal.heightUnit) : 64;
     const age = goal.age || 25;
-    const kg = currentWeight * 0.453592;
-    const cm = heightIn * 2.54;
+    const weightLbsNorm = toLbs(currentWeight, goal.unit);
+    const kg = weightLbsNorm * 0.453592;
+    const cm = heightInNorm * 2.54;
     const bmr = goal.gender === "male" ? 10 * kg + 6.25 * cm - 5 * age + 5 : 10 * kg + 6.25 * cm - 5 * age - 161;
     const actMult: Record<string, number> = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9 };
     const tdee = Math.round(bmr * (actMult[goal.activityLevel] || 1.2));
@@ -361,7 +363,11 @@ export async function GET() {
     const projectedLbsPerWeek = Math.round((weeklyDeficitCal / 3500) * 10) / 10;
 
     if (projectedLbsPerWeek > 0 && goal.targetWeight) {
-      const lbsToGo = currentWeight - goal.targetWeight;
+      const unitLabel = goal.unit === "kg" ? "kg" : "lbs";
+      const projectedPerWeek = goal.unit === "kg"
+        ? Math.round(projectedLbsPerWeek * 0.453592 * 10) / 10
+        : projectedLbsPerWeek;
+      const lbsToGo = toLbs(currentWeight, goal.unit) - toLbs(goal.targetWeight, goal.unit);
       if (lbsToGo > 0) {
         const weeksToGoal = Math.round(lbsToGo / projectedLbsPerWeek);
         const goalDate = new Date();
@@ -369,13 +375,13 @@ export async function GET() {
         const goalDateStr = goalDate.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 
         if (projectedLbsPerWeek > 2.5) {
-          trajectory(`⚡ At your current pace (~${projectedLbsPerWeek} lbs/week), you'd hit ${goal.targetWeight} by ${goalDateStr}. But this rate is aggressive — losing more than 2 lbs/week increases muscle loss and makes rebound more likely. Consider slowing down slightly for more sustainable results.`);
+          trajectory(`⚡ At your current pace (~${projectedPerWeek} ${unitLabel}/week), you'd hit ${goal.targetWeight} ${unitLabel} by ${goalDateStr}. But this rate is aggressive — losing more than 2 lbs/week increases muscle loss and makes rebound more likely. Consider slowing down slightly for more sustainable results.`);
         } else if (projectedLbsPerWeek > 1) {
-          trajectory(`📍 Trajectory: at ~${projectedLbsPerWeek} lbs/week, you're on track to reach ${goal.targetWeight} around ${goalDateStr}. This is a healthy pace. Stay consistent and you'll get there.`);
+          trajectory(`📍 Trajectory: at ~${projectedPerWeek} ${unitLabel}/week, you're on track to reach ${goal.targetWeight} ${unitLabel} around ${goalDateStr}. This is a healthy pace. Stay consistent and you'll get there.`);
         } else if (projectedLbsPerWeek > 0.3) {
-          trajectory(`📍 Trajectory: ~${projectedLbsPerWeek} lbs/week puts your goal of ${goal.targetWeight} around ${goalDateStr}. Progress is real but slow. Adding 2-3 exercise sessions per week could nearly double your rate.`);
+          trajectory(`📍 Trajectory: ~${projectedPerWeek} ${unitLabel}/week puts your goal of ${goal.targetWeight} ${unitLabel} around ${goalDateStr}. Progress is real but slow. Adding 2-3 exercise sessions per week could nearly double your rate.`);
         } else {
-          trajectory(`🐌 At current intake, you're barely in deficit (~${projectedLbsPerWeek} lbs/week). At this rate, reaching ${goal.targetWeight} would take ${weeksToGoal}+ weeks. Either reduce intake by 200-300 kcal/day or add consistent exercise to move the needle.`);
+          trajectory(`🐌 At current intake, you're barely in deficit (~${projectedPerWeek} ${unitLabel}/week). At this rate, reaching ${goal.targetWeight} ${unitLabel} would take ${weeksToGoal}+ weeks. Either reduce intake by 200-300 kcal/day or add consistent exercise to move the needle.`);
         }
       }
     } else if (projectedLbsPerWeek <= 0) {

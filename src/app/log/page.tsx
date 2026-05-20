@@ -77,7 +77,14 @@ export default function LogPage() {
   useEffect(() => {
     if (!search) { setFilteredFoods([]); setFilteredRecipes([]); return; }
     const q = search.toLowerCase();
-    setFilteredFoods(foods.filter(f => f.name.toLowerCase().includes(q)).slice(0, 8));
+    setFilteredFoods(
+      foods
+        .filter(f =>
+          f.name.toLowerCase().includes(q) ||
+          (f.brand ? f.brand.toLowerCase().includes(q) : false)
+        )
+        .slice(0, 8),
+    );
     setFilteredRecipes(recipes.filter(r => r.title.toLowerCase().includes(q)).slice(0, 5));
   }, [search, foods, recipes]);
 

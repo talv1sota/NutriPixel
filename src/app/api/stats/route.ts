@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { resolveFood } from "@/lib/foodLogs";
+import { toLbs, toIn } from "@/lib/helpers";
 
 function dateNDaysAgo(n: number) {
   const d = new Date();
@@ -150,8 +151,15 @@ export async function GET() {
   const weights = await prisma.weightEntry.findMany({ where: { userId: session.userId }, orderBy: { date: "asc" } });
 
   const currentWeight = weights.length > 0 ? weights[weights.length - 1].weight : null;
+  // calcTDEE expects lbs + inches; normalize whatever the user has stored.
   const tdee = (currentWeight && goal?.height && goal?.age)
-    ? calcTDEE(currentWeight, goal.height, goal.age, goal.gender, goal.activityLevel)
+    ? calcTDEE(
+        toLbs(currentWeight, goal.unit),
+        toIn(goal.height, goal.heightUnit),
+        goal.age,
+        goal.gender,
+        goal.activityLevel,
+      )
     : null;
 
   const [week, month] = await Promise.all([
