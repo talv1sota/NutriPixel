@@ -7,6 +7,28 @@
   --font-body: 'Quicksand', sans-serif;
 }
 
+/* ============ THEME TOKENS ============ */
+/* Default (Y2K "cutesy") theme. The [data-theme="edge"] block at the bottom
+   re-declares these for the dark red/black "edgy" mode. Inline styles across the
+   app reference these via var(), so they flip with the theme too. */
+:root {
+  --ink: #4a2d6b;          /* primary text */
+  --ink-muted: #9b80b8;    /* secondary text */
+  --ink-faint: #b098c8;    /* tertiary / captions */
+  --ink-soft: #7a5a9e;     /* soft body text */
+  --accent-purple: #9b5de5;
+  --accent-pink: #e84d98;
+  --surface: #fff8ff;      /* window/panel bg */
+  --surface-2: #ffffff;    /* input / stat-box bg */
+  --win-border: #8855aa;
+  --win-border-soft: #d4b8e8;
+  --track: #ede0f5;        /* progress track / muted bg */
+  --titlebar: linear-gradient(180deg, #c77dff, #9b5de5, #7b2cbf);
+  --page-grad: linear-gradient(180deg, #d4a5f5 0%, #a8b5e8 50%, #b8d4e8 100%);
+  --star-fill: %23e0c0f0;
+  --win-shadow: 3px 3px 0 rgba(100, 50, 130, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
 /* ============ BASE ============ */
 
 html, body {
@@ -17,7 +39,7 @@ html, body {
 body {
   font-family: 'Quicksand', sans-serif;
   font-weight: 500;
-  color: #4a2d6b;
+  color: var(--ink);
   min-height: 100vh;
   background: url("data:image/svg+xml,%3Csvg width='24' height='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2l1 3 3 1-3 1-1 3-1-3-3-1 3-1z' fill='%23e0c0f0' fill-opacity='0.5'/%3E%3C/svg%3E") repeat;
 }
@@ -27,7 +49,7 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(180deg, #d4a5f5 0%, #a8b5e8 50%, #b8d4e8 100%);
+  background: var(--page-grad);
   pointer-events: none;
 }
 
@@ -36,17 +58,15 @@ body::before {
 /* ============ WINDOW PANELS (Gaia-style) ============ */
 
 .window {
-  border: 2px solid #8855aa;
+  border: 2px solid var(--win-border);
   border-radius: 10px;
   overflow: visible;
-  background: #fff8ff;
-  box-shadow:
-    3px 3px 0 rgba(100, 50, 130, 0.25),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  background: var(--surface);
+  box-shadow: var(--win-shadow);
 }
 
 .window-title {
-  background: linear-gradient(180deg, #c77dff, #9b5de5, #7b2cbf);
+  background: var(--titlebar);
   color: white;
   font-family: 'Press Start 2P', monospace;
   font-size: 9px;
@@ -361,7 +381,7 @@ option { background: white; color: #4a2d6b; }
 .pixel-label {
   font-family: 'Press Start 2P', monospace;
   font-size: 8px;
-  color: #9b5de5;
+  color: var(--accent-purple);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -369,7 +389,7 @@ option { background: white; color: #4a2d6b; }
 .vt-text {
   font-family: 'VT323', monospace;
   font-size: 18px;
-  color: #7a5a9e;
+  color: var(--ink-soft);
 }
 
 .badge {
@@ -410,3 +430,136 @@ option { background: white; color: #4a2d6b; }
 
 .dropdown-item:last-child { border-bottom: none; }
 .dropdown-item:hover { background: #f5eeff; }
+
+/* ============ THEME TOGGLE (floating, visible everywhere) ============ */
+.theme-toggle {
+  position: fixed;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 70px); /* clear the mobile tab bar */
+  z-index: 60;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--win-border);
+  box-shadow: 2px 2px 0 rgba(100, 50, 130, 0.25);
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.theme-toggle:hover { transform: translateY(-1px); }
+.theme-toggle:active { transform: translateY(1px); }
+@media (min-width: 640px) {
+  .theme-toggle { bottom: 16px; }
+}
+
+/* ============================================================
+   EDGE MODE — stark black & white
+   Activated by <html data-theme="edge">. Re-tokens the palette to
+   grayscale and desaturates any remaining literal colors so the
+   whole app reads as true black & white.
+   ============================================================ */
+
+[data-theme="edge"] {
+  --ink: #f4f4f4;
+  --ink-muted: #9a9a9a;
+  --ink-faint: #6f6f6f;
+  --ink-soft: #cfcfcf;
+  --accent-purple: #ffffff;
+  --accent-pink: #ffffff;
+  --surface: #0c0c0c;
+  --surface-2: #161616;
+  --win-border: #4a4a4a;
+  --win-border-soft: #2c2c2c;
+  --track: #262626;
+  --titlebar: linear-gradient(180deg, #2a2a2a, #161616, #050505);
+  --page-grad: linear-gradient(165deg, #141414 0%, #0a0a0a 55%, #000000 100%);
+  --win-shadow: 3px 3px 0 rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Desaturate everything left in colour (macro rings, progress fills, accent
+   numbers, content emoji) → true monochrome. Applied per top-level block so
+   the fixed mobile tab bar / portalled modals keep their own positioning. */
+[data-theme="edge"] body > * { filter: grayscale(100%); }
+[data-theme="edge"] body { background-image: none; }
+
+[data-theme="edge"] .window-title {
+  color: #f4f4f4;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+[data-theme="edge"] .window-title .dot-red { background: #dcdcdc; }
+[data-theme="edge"] .window-title .dot-yellow { background: #8a8a8a; }
+[data-theme="edge"] .window-title .dot-green { background: #4a4a4a; }
+
+/* Buttons — white primary (black text), charcoal secondary */
+[data-theme="edge"] .btn-pink {
+  background: linear-gradient(180deg, #ffffff, #e6e6e6, #cccccc);
+  border-color: #ffffff;
+  color: #111;
+  box-shadow: 0 2px 0 #888, inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  text-shadow: none;
+}
+[data-theme="edge"] .btn-pink:hover {
+  box-shadow: 0 3px 0 #888, 0 5px 14px rgba(255, 255, 255, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+[data-theme="edge"] .btn-pink:active { box-shadow: 0 0 0 #888, inset 0 1px 0 rgba(255, 255, 255, 0.6); }
+[data-theme="edge"] .btn-blue {
+  background: linear-gradient(180deg, #3a3a3a, #232323, #131313);
+  border-color: #555;
+  color: #f0f0f0;
+  box-shadow: 0 2px 0 #000, inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  text-shadow: none;
+}
+[data-theme="edge"] .btn-blue:hover {
+  box-shadow: 0 3px 0 #000, 0 5px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+[data-theme="edge"] .btn-blue:active { box-shadow: 0 0 0 #000, inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+
+/* Inputs */
+[data-theme="edge"] .input,
+[data-theme="edge"] .select {
+  background: var(--surface-2);
+  border-color: #3a3a3a;
+  color: var(--ink);
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.6);
+}
+[data-theme="edge"] .input::placeholder { color: #6a6a6a; }
+[data-theme="edge"] .input:focus,
+[data-theme="edge"] .select:focus {
+  border-color: #ffffff;
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(255, 255, 255, 0.18);
+}
+[data-theme="edge"] option { background: #0c0c0c; color: var(--ink); }
+
+/* Surfaces */
+[data-theme="edge"] .stat-box {
+  background: var(--surface-2);
+  border-color: #383838;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+[data-theme="edge"] .badge {
+  background: #1d1d1d;
+  border-color: #3a3a3a;
+  color: #d8d8d8;
+}
+[data-theme="edge"] .list-row { border-bottom-color: #2a2a2a; }
+[data-theme="edge"] .bar-track { background: var(--track); border-color: #383838; }
+[data-theme="edge"] .divider { background: linear-gradient(90deg, transparent, #4a4a4a, transparent); }
+[data-theme="edge"] .delete-btn { color: #6a6a6a; }
+[data-theme="edge"] .delete-btn:hover { color: #ffffff; }
+[data-theme="edge"] .dropdown-item { border-bottom-color: #2a2a2a; }
+[data-theme="edge"] .dropdown-item:hover { background: #1d1d1d; }
+[data-theme="edge"] .theme-toggle { box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6); }
+
+/* Nav */
+[data-theme="edge"] .nav-tab { color: #9a9a9a; }
+[data-theme="edge"] .nav-tab:hover { color: #ffffff; background: rgba(255, 255, 255, 0.08); }
+[data-theme="edge"] .nav-tab.active { color: #ffffff; background: rgba(255, 255, 255, 0.12); }
+/* Pastel utility backgrounds used in the nav header / marquee → dark */
+[data-theme="edge"] .nav-row { background: linear-gradient(180deg, #1a1a1a, #101010) !important; }
+[data-theme="edge"] .marquee-wrap { background: #0e0e0e !important; }
+[data-theme="edge"] .marquee-inner { color: #8a8a8a !important; }

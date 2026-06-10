@@ -3,6 +3,8 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import Stars from "@/components/Stars";
+import ThemeToggle from "@/components/ThemeToggle";
+import EmojiScrub from "@/components/EmojiScrub";
 import { getSession } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -16,6 +18,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" className="h-full">
+      <head>
+        {/* Apply saved theme before paint to avoid a flash of the default theme. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(localStorage.getItem('theme')==='edge')document.documentElement.setAttribute('data-theme','edge');}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col relative">
         <Stars />
         {session && <Nav />}
@@ -25,6 +35,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <div className="hidden sm:block">
           {session && <Footer />}
         </div>
+        <ThemeToggle />
+        <EmojiScrub />
       </body>
     </html>
   );

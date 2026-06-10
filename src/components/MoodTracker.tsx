@@ -104,7 +104,7 @@ export default function MoodTracker({ date, onSave }: MoodTrackerProps) {
                   borderRadius: 20,
                   background: isSelected ? t.color : "#f5eeff",
                   border: `2px solid ${isSelected ? t.color : "#e0d0f0"}`,
-                  color: isSelected ? "#4a2d6b" : "#8b6a9e",
+                  color: isSelected ? "var(--ink)" : "#8b6a9e",
                   fontWeight: 700,
                   fontSize: 12,
                   cursor: "pointer",

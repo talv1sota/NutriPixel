@@ -204,11 +204,11 @@ export default function GoalsPage() {
       <div className="flex gap-2 items-center">
         <input type="number" value={minVal} onChange={e => u(minKey, e.target.value)}
           placeholder="min" className="input" />
-        <span className="text-xs font-bold" style={{ color: "#b098c8" }}>to</span>
+        <span className="text-xs font-bold" style={{ color: "var(--ink-faint)" }}>to</span>
         <input type="number" value={maxVal} onChange={e => u(maxKey, e.target.value)}
           placeholder="max" className="input" />
       </div>
-      <span className="text-[10px]" style={{ color: "#b098c8" }}>
+      <span className="text-[10px]" style={{ color: "var(--ink-faint)" }}>
         {minVal && maxVal
           ? `${parseFloat(minVal) * (label === "Fat" ? 9 : 4)}–${parseFloat(maxVal) * (label === "Fat" ? 9 : 4)} kcal`
           : `${(parseFloat(maxVal) || 0) * (label === "Fat" ? 9 : 4)} kcal`} · leave blank to skip
@@ -260,7 +260,7 @@ export default function GoalsPage() {
           </div>
           <div>
             <label className="pixel-label block mb-1" style={{ fontSize: "7px" }}>
-              Height ({form.heightUnit}) {heightDisplay && <span style={{ color: "#9b5de5" }}>{heightDisplay}</span>}
+              Height ({form.heightUnit}) {heightDisplay && <span style={{ color: "var(--accent-purple)" }}>{heightDisplay}</span>}
             </label>
             <input type="number" value={form.height} onChange={e => u("height", e.target.value)}
               placeholder={form.heightUnit === "in" ? "e.g. 63" : "e.g. 160"} className="input" />
@@ -279,8 +279,8 @@ export default function GoalsPage() {
             </select>
           </div>
           {tdee && (
-            <div className="text-xs text-center" style={{ color: "#7a5a9e" }}>
-              BMR: <strong>{bmr}</strong> kcal · TDEE: <strong style={{ color: "#9b5de5" }}>{tdee}</strong> kcal/day
+            <div className="text-xs text-center" style={{ color: "var(--ink-soft)" }}>
+              BMR: <strong>{bmr}</strong> kcal · TDEE: <strong style={{ color: "var(--accent-purple)" }}>{tdee}</strong> kcal/day
             </div>
           )}
         </div>
@@ -324,13 +324,13 @@ export default function GoalsPage() {
 
           {form.goalType === "maintain" && (
             <div className="stat-box space-y-2" style={{ background: "#f5eeff", textAlign: "left" }}>
-              <div className="pixel-label" style={{ fontSize: "7px", color: "#9b5de5" }}>✧ Maintenance Plan ✧</div>
+              <div className="pixel-label" style={{ fontSize: "7px", color: "var(--accent-purple)" }}>✧ Maintenance Plan ✧</div>
               {tdee ? (
                 <>
                   <div className="text-sm">
-                    Eat at TDEE: <strong style={{ color: "#9b5de5" }}>{tdee} kcal/day</strong>
+                    Eat at TDEE: <strong style={{ color: "var(--accent-purple)" }}>{tdee} kcal/day</strong>
                   </div>
-                  <div className="text-xs" style={{ color: "#7a5a9e" }}>
+                  <div className="text-xs" style={{ color: "var(--ink-soft)" }}>
                     Target weight will track your current weight ({currentW ?? "—"} {form.unit}).
                   </div>
                   <button onClick={() => u("targetCalories", String(tdee))}
@@ -339,7 +339,7 @@ export default function GoalsPage() {
                   </button>
                 </>
               ) : (
-                <div className="text-xs" style={{ color: "#9b80b8" }}>
+                <div className="text-xs" style={{ color: "var(--ink-muted)" }}>
                   fill in profile above to see your maintenance calories
                 </div>
               )}
@@ -349,7 +349,7 @@ export default function GoalsPage() {
           {/* Plan suggestion */}
           {form.goalType !== "maintain" && weightDiff !== null && daysToGoal && weeklyRate && tdee && suggestedCals !== null && (
             <div className="stat-box space-y-2" style={{ background: "#f5eeff", textAlign: "left" }}>
-              <div className="pixel-label" style={{ fontSize: "7px", color: "#9b5de5" }}>✧ Suggested Plan ✧</div>
+              <div className="pixel-label" style={{ fontSize: "7px", color: "var(--accent-purple)" }}>✧ Suggested Plan ✧</div>
               <div className="text-sm">
                 <strong>{Math.abs(weightDiff).toFixed(1)} {form.unit}</strong> to {weightDiff > 0 ? "lose" : "gain"} in{" "}
                 <strong>{daysToGoal} days</strong> ({(daysToGoal / 7).toFixed(1)} weeks)
@@ -366,7 +366,7 @@ export default function GoalsPage() {
                 Daily {weightDiff > 0 ? "deficit" : "surplus"}: <strong>{Math.abs(dailyDeficit!)} kcal</strong>
               </div>
               <div className="text-sm">
-                Suggested intake: <strong style={{ color: "#9b5de5" }}>{suggestedCals} kcal/day</strong>
+                Suggested intake: <strong style={{ color: "var(--accent-purple)" }}>{suggestedCals} kcal/day</strong>
               </div>
 
               {suggestedCals <= 0 && (
@@ -414,11 +414,11 @@ export default function GoalsPage() {
 
           <div className="divider" />
 
-          <MacroField label="Fat" color="#e84d98"
+          <MacroField label="Fat" color="var(--accent-pink)"
             minKey="minFat" maxKey="targetFat" minVal={form.minFat} maxVal={form.targetFat} />
 
           {macroCals > 0 && (
-            <div className="text-xs text-center" style={{ color: "#7a5a9e" }}>
+            <div className="text-xs text-center" style={{ color: "var(--ink-soft)" }}>
               Macro total (at max): <strong style={{ color: "#6bcb77" }}>{Math.round(macroCals)} kcal</strong>
               {form.targetCalories && Math.abs(macroCals - parseFloat(form.targetCalories)) > 50 && (
                 <span className="ml-2" style={{ color: "#dda520" }}>
@@ -446,7 +446,7 @@ export default function GoalsPage() {
           ))}
         </div>
         {!tdee && (
-          <p className="text-[10px] text-center mt-2" style={{ color: "#b098c8" }}>
+          <p className="text-[10px] text-center mt-2" style={{ color: "var(--ink-faint)" }}>
             fill in profile above for personalized presets
           </p>
         )}

@@ -16,8 +16,8 @@ export default function ProgressBar({ value, max, label, type }: ProgressBarProp
     <div className="space-y-1">
       <div className="flex justify-between text-xs font-bold">
         <span style={{ color: "#6a4d8a" }}>{label}</span>
-        <span style={{ color: over ? "#ff4444" : "#4a2d6b" }}>
-          {Math.round(value)}{hasGoal ? ` / ${max}` : <span className="italic" style={{ color: "#b098c8", fontWeight: "normal" }}> g · no goal</span>}
+        <span style={{ color: over ? "#ff4444" : "var(--ink)" }}>
+          {Math.round(value)}{hasGoal ? ` / ${max}` : <span className="italic" style={{ color: "var(--ink-faint)", fontWeight: "normal" }}> g · no goal</span>}
         </span>
       </div>
       <div className="bar-track">

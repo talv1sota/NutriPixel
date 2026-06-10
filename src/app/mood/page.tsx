@@ -66,7 +66,7 @@ export default function MoodPage() {
                   }}
                 >
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold" style={{ color: "#9b5de5" }}>
+                    <span className="text-xs font-bold" style={{ color: "var(--accent-purple)" }}>
                       {formatDate(entry.date)}
                     </span>
                   </div>
@@ -78,7 +78,7 @@ export default function MoodPage() {
                     </div>
                   )}
                   {entry.notes && (
-                    <p className="text-xs italic" style={{ color: "#7a5a9e" }}>
+                    <p className="text-xs italic" style={{ color: "var(--ink-soft)" }}>
                       &quot;{entry.notes}&quot;
                     </p>
                   )}

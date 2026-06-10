@@ -14,17 +14,17 @@ export default function Footer() {
         <div className="text-center py-4 px-3">
           <div
             className="pixel-label"
-            style={{ fontSize: 8, color: "#9b5de5", letterSpacing: 2 }}
+            style={{ fontSize: 8, color: "var(--accent-purple)", letterSpacing: 2 }}
           >
-            <span style={{ color: "#e84d98" }}>⋆｡°</span>
+            <span style={{ color: "var(--accent-pink)" }}>⋆｡°</span>
             <span style={{ color: "#ffc145" }}>✦</span>
             <span style={{ color: "#5bb8e8" }}>˚</span>
-            <span style={{ color: "#e84d98" }}>✧</span>
+            <span style={{ color: "var(--accent-pink)" }}>✧</span>
             &nbsp;✧ NutriTracker ✧&nbsp;
-            <span style={{ color: "#e84d98" }}>✧</span>
+            <span style={{ color: "var(--accent-pink)" }}>✧</span>
             <span style={{ color: "#5bb8e8" }}>˚</span>
             <span style={{ color: "#ffc145" }}>✦</span>
-            <span style={{ color: "#e84d98" }}>°｡⋆</span>
+            <span style={{ color: "var(--accent-pink)" }}>°｡⋆</span>
           </div>
         </div>
       </div>

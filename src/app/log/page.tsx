@@ -378,7 +378,7 @@ export default function LogPage() {
                       <div className="flex justify-between items-center">
                         <div>
                           <span className="font-bold text-sm">{recipe.title}</span>
-                          <span className="text-xs ml-2" style={{ color: "#e84d98" }}>recipe</span>
+                          <span className="text-xs ml-2" style={{ color: "var(--accent-pink)" }}>recipe</span>
                         </div>
                         {recipe.calories != null && (
                           <span className="text-xs font-bold" style={{ color: "#6bcb77" }}>
@@ -386,7 +386,7 @@ export default function LogPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex gap-3 text-[10px] mt-1" style={{ color: "#b098c8" }}>
+                      <div className="flex gap-3 text-[10px] mt-1" style={{ color: "var(--ink-faint)" }}>
                         <span>per serving</span>
                         {recipe.protein != null && <span>P{Math.round(recipe.protein)}g</span>}
                         {recipe.carbs != null && <span>C{Math.round(recipe.carbs)}g</span>}
@@ -404,13 +404,13 @@ export default function LogPage() {
                       <div className="flex justify-between items-center">
                         <div>
                           <span className="font-bold text-sm">{food.name}</span>
-                          {food.brand && <span className="text-xs ml-2" style={{ color: "#9b80b8" }}>{food.brand}</span>}
+                          {food.brand && <span className="text-xs ml-2" style={{ color: "var(--ink-muted)" }}>{food.brand}</span>}
                         </div>
                         <span className="text-xs font-bold" style={{ color: "#6bcb77" }}>
                           {Math.round(food.calories * food.serving / 100)} kcal
                         </span>
                       </div>
-                      <div className="flex gap-3 text-[10px] mt-1" style={{ color: "#b098c8" }}>
+                      <div className="flex gap-3 text-[10px] mt-1" style={{ color: "var(--ink-faint)" }}>
                         <span>{food.serving}{food.unit}</span>
                         <span>P{(food.protein * food.serving / 100).toFixed(0)}g</span>
                         <span>C{(food.carbs * food.serving / 100).toFixed(0)}g</span>
@@ -452,7 +452,7 @@ export default function LogPage() {
                   ))}
                 </div>
                 {selected.recipe.servings && (
-                  <p className="text-xs mt-2" style={{ color: "#9b80b8" }}>
+                  <p className="text-xs mt-2" style={{ color: "var(--ink-muted)" }}>
                     Full recipe = {selected.recipe.servings}
                   </p>
                 )}
@@ -465,11 +465,11 @@ export default function LogPage() {
                   { v: preview.calories, l: "kcal", c: "#6bcb77", bg: "#edfff0" },
                   { v: preview.protein, l: "protein", c: "#5bb8e8", bg: "#edf6ff" },
                   { v: preview.carbs, l: "carbs", c: "#dda520", bg: "#fffced" },
-                  { v: preview.fat, l: "fat", c: "#e84d98", bg: "#fff0f5" },
+                  { v: preview.fat, l: "fat", c: "var(--accent-pink)", bg: "#fff0f5" },
                 ].map(item => (
                   <div key={item.l} className="stat-box" style={{ background: item.bg }}>
                     <div className="text-lg font-bold" style={{ color: item.c }}>{item.v}</div>
-                    <div className="text-[10px] font-semibold" style={{ color: "#9b80b8" }}>{item.l}</div>
+                    <div className="text-[10px] font-semibold" style={{ color: "var(--ink-muted)" }}>{item.l}</div>
                   </div>
                 ))}
               </div>
@@ -513,7 +513,7 @@ export default function LogPage() {
                     <div className="text-sm font-semibold truncate">
                       {r.food?.name ?? "(deleted food)"}
                     </div>
-                    <div className="text-[10px]" style={{ color: "#9b80b8" }}>
+                    <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>
                       {r.amount}{r.food?.unit ?? "g"} · {mealOptions.find(o => o.v === r.meal)?.l ?? r.meal}
                       {r.food && ` · ~${Math.round(r.food.calories * r.amount / 100)} kcal`}
                     </div>
@@ -540,7 +540,7 @@ export default function LogPage() {
                     style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
                   >
                     <div className="text-sm font-semibold truncate">{food.name}</div>
-                    <div className="text-[10px]" style={{ color: "#9b80b8" }}>
+                    <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>
                       {food.brand && food.brand !== "Custom" ? `${food.brand} · ` : ""}
                       {Math.round(food.calories * food.serving / 100)} kcal / {food.serving}{food.unit}
                     </div>
@@ -566,12 +566,12 @@ export default function LogPage() {
             <div className="space-y-2 text-sm">
               {openSavedFood.brand && openSavedFood.brand !== "Custom" && (
                 <div className="flex justify-between">
-                  <span style={{ color: "#9b80b8" }}>Brand</span>
+                  <span style={{ color: "var(--ink-muted)" }}>Brand</span>
                   <strong>{openSavedFood.brand}</strong>
                 </div>
               )}
               <div className="flex justify-between">
-                <span style={{ color: "#9b80b8" }}>Serving</span>
+                <span style={{ color: "var(--ink-muted)" }}>Serving</span>
                 <strong>{openSavedFood.serving}{openSavedFood.unit}</strong>
               </div>
               <div className="stat-box" style={{ padding: 10 }}>
@@ -590,7 +590,7 @@ export default function LogPage() {
                     <div style={{ fontSize: 9 }}>carbs</div>
                   </div>
                   <div>
-                    <div style={{ color: "#e84d98" }}>{Math.round(openSavedFood.fat * openSavedFood.serving / 100 * 10) / 10}g</div>
+                    <div style={{ color: "var(--accent-pink)" }}>{Math.round(openSavedFood.fat * openSavedFood.serving / 100 * 10) / 10}g</div>
                     <div style={{ fontSize: 9 }}>fat</div>
                   </div>
                 </div>

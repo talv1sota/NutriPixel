@@ -117,52 +117,52 @@ export default function StatsPage() {
             <div className="grid grid-cols-4 gap-2">
               <div className="stat-box" style={{ background: "#edfff0" }}>
                 <div className="text-lg font-bold" style={{ color: "#6bcb77" }}>{w.avg.calories}</div>
-                <div className="text-[10px] font-semibold" style={{ color: "#9b80b8" }}>avg kcal</div>
+                <div className="text-[10px] font-semibold" style={{ color: "var(--ink-muted)" }}>avg kcal</div>
               </div>
               <div className="stat-box" style={{ background: "#edf6ff" }}>
                 <div className="text-lg font-bold" style={{ color: "#5bb8e8" }}>{w.avg.protein}</div>
-                <div className="text-[10px] font-semibold" style={{ color: "#9b80b8" }}>protein</div>
+                <div className="text-[10px] font-semibold" style={{ color: "var(--ink-muted)" }}>protein</div>
               </div>
               <div className="stat-box" style={{ background: "#fffced" }}>
                 <div className="text-lg font-bold" style={{ color: "#dda520" }}>{w.avg.carbs}</div>
-                <div className="text-[10px] font-semibold" style={{ color: "#9b80b8" }}>carbs</div>
+                <div className="text-[10px] font-semibold" style={{ color: "var(--ink-muted)" }}>carbs</div>
               </div>
               <div className="stat-box" style={{ background: "#fff0f5" }}>
-                <div className="text-lg font-bold" style={{ color: "#e84d98" }}>{w.avg.fat}</div>
-                <div className="text-[10px] font-semibold" style={{ color: "#9b80b8" }}>fat</div>
+                <div className="text-lg font-bold" style={{ color: "var(--accent-pink)" }}>{w.avg.fat}</div>
+                <div className="text-[10px] font-semibold" style={{ color: "var(--ink-muted)" }}>fat</div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2 mt-3">
               <div className="stat-box">
-                <div className="text-base font-bold" style={{ color: "#e84d98" }}>-{w.avg.burned}</div>
-                <div className="text-[10px]" style={{ color: "#9b80b8" }}>avg burned</div>
+                <div className="text-base font-bold" style={{ color: "var(--accent-pink)" }}>-{w.avg.burned}</div>
+                <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>avg burned</div>
               </div>
               <div className="stat-box">
                 <div className="text-base font-bold" style={{ color: "#6bcb77" }}>{w.avg.net}</div>
-                <div className="text-[10px]" style={{ color: "#9b80b8" }}>avg net</div>
+                <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>avg net</div>
               </div>
               <div className="stat-box">
                 <div className="text-base font-bold" style={{ color: "#5bb8e8" }}>{w.loggedCount}/{w.days}</div>
-                <div className="text-[10px]" style={{ color: "#9b80b8" }}>days logged</div>
+                <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>days logged</div>
               </div>
             </div>
           </>
         ) : (
-          <p className="text-center text-sm" style={{ color: "#9b80b8" }}>no data in this window yet ~*</p>
+          <p className="text-center text-sm" style={{ color: "var(--ink-muted)" }}>no data in this window yet ~*</p>
         )}
       </Window>
 
       {/* Deficit & projection */}
       <Window title="🔥 Deficit & Projection">
         {data.tdee == null ? (
-          <p className="text-xs" style={{ color: "#9b80b8" }}>
+          <p className="text-xs" style={{ color: "var(--ink-muted)" }}>
             set your height, age, and weight in Goals to unlock TDEE-based deficit math ✦
           </p>
         ) : w.avgDeficitVsTDEE == null ? (
-          <p className="text-xs" style={{ color: "#9b80b8" }}>no logs in this window yet</p>
+          <p className="text-xs" style={{ color: "var(--ink-muted)" }}>no logs in this window yet</p>
         ) : (
           <div className="space-y-3">
-            <div className="text-xs" style={{ color: "#9b80b8" }}>
+            <div className="text-xs" style={{ color: "var(--ink-muted)" }}>
               TDEE: <strong style={{ color: "#5bb8e8" }}>{data.tdee} kcal/day</strong>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -170,29 +170,29 @@ export default function StatsPage() {
                 <div className="text-xl font-bold" style={{ color: w.avgDeficitVsTDEE >= 0 ? "#6bcb77" : "#e04040" }}>
                   {w.avgDeficitVsTDEE >= 0 ? "-" : "+"}{Math.abs(w.avgDeficitVsTDEE)}
                 </div>
-                <div className="text-[10px]" style={{ color: "#9b80b8" }}>avg daily deficit</div>
+                <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>avg daily deficit</div>
               </div>
               <div className="stat-box">
                 <div className="text-xl font-bold" style={{ color: "#b76fd9" }}>
                   {w.weeklyDeficit! >= 0 ? "-" : "+"}{Math.abs(w.weeklyDeficit!)}
                 </div>
-                <div className="text-[10px]" style={{ color: "#9b80b8" }}>weekly deficit</div>
+                <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>weekly deficit</div>
               </div>
               <div className="stat-box">
                 <div className="text-xl font-bold" style={{ color: "#b76fd9" }}>
                   {w.monthlyDeficit! >= 0 ? "-" : "+"}{Math.abs(w.monthlyDeficit!)}
                 </div>
-                <div className="text-[10px]" style={{ color: "#9b80b8" }}>monthly deficit</div>
+                <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>monthly deficit</div>
               </div>
               <div className="stat-box" style={{ background: "#fff0f5" }}>
-                <div className="text-xl font-bold" style={{ color: "#e84d98" }}>
+                <div className="text-xl font-bold" style={{ color: "var(--accent-pink)" }}>
                   {(range === "month" ? w.projectedLbsPerMonth! : w.projectedLbsPerWeek!) >= 0 ? "" : "+"}
                   {range === "month" ? w.projectedLbsPerMonth : w.projectedLbsPerWeek} {unit}/{range === "month" ? "mo" : "wk"}
                 </div>
-                <div className="text-[10px]" style={{ color: "#9b80b8" }}>projected loss</div>
+                <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>projected loss</div>
               </div>
             </div>
-            <p className="text-[10px] text-center" style={{ color: "#b098c8" }}>
+            <p className="text-[10px] text-center" style={{ color: "var(--ink-faint)" }}>
               ~{range === "month" ? w.projectedLbsPerWeek : w.projectedLbsPerMonth} {unit}/{range === "month" ? "week" : "month"} at this pace
             </p>
           </div>
@@ -202,21 +202,21 @@ export default function StatsPage() {
       {/* On-track */}
       {w.onTrack && targetCal && w.loggedCount > 0 && (
         <Window title="🎯 On Track?">
-          <div className="text-xs mb-2" style={{ color: "#9b80b8" }}>
+          <div className="text-xs mb-2" style={{ color: "var(--ink-muted)" }}>
             Target: <strong style={{ color: "#6bcb77" }}>{targetCal} kcal/day</strong> (±10%)
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="stat-box" style={{ background: "#edfff0" }}>
               <div className="text-lg font-bold" style={{ color: "#6bcb77" }}>{w.onTrack.daysOnCal}</div>
-              <div className="text-[10px]" style={{ color: "#9b80b8" }}>on target</div>
+              <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>on target</div>
             </div>
             <div className="stat-box" style={{ background: "#fff0f0" }}>
               <div className="text-lg font-bold" style={{ color: "#e04040" }}>{w.onTrack.daysOverCal}</div>
-              <div className="text-[10px]" style={{ color: "#9b80b8" }}>over</div>
+              <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>over</div>
             </div>
           </div>
           {w.daysHitProtein != null && data.goal.minProtein && (
-            <div className="mt-3 text-xs text-center" style={{ color: "#9b80b8" }}>
+            <div className="mt-3 text-xs text-center" style={{ color: "var(--ink-muted)" }}>
               hit protein min ({data.goal.minProtein}g): <strong style={{ color: "#5bb8e8" }}>{w.daysHitProtein}/{w.loggedCount}</strong> days
             </div>
           )}
@@ -226,29 +226,29 @@ export default function StatsPage() {
       {/* Weight progress */}
       <Window title="⚖️ Weight Progress">
         {data.weight.current == null ? (
-          <p className="text-xs" style={{ color: "#9b80b8" }}>log your weight to see progress ~*</p>
+          <p className="text-xs" style={{ color: "var(--ink-muted)" }}>log your weight to see progress ~*</p>
         ) : (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-2">
               <div className="stat-box">
                 <div className="text-base font-bold" style={{ color: "#5bb8e8" }}>{data.weight.current}</div>
-                <div className="text-[10px]" style={{ color: "#9b80b8" }}>current</div>
+                <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>current</div>
               </div>
               <div className="stat-box">
-                <div className="text-base font-bold" style={{ color: "#e84d98" }}>{data.weight.target ?? "—"}</div>
-                <div className="text-[10px]" style={{ color: "#9b80b8" }}>goal</div>
+                <div className="text-base font-bold" style={{ color: "var(--accent-pink)" }}>{data.weight.target ?? "—"}</div>
+                <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>goal</div>
               </div>
               <div className="stat-box">
                 <div className="text-base font-bold" style={{ color: data.weight.lbsLost != null && data.weight.lbsLost > 0 ? "#6bcb77" : "#dda520" }}>
                   {data.weight.lbsLost != null ? (data.weight.lbsLost >= 0 ? "-" : "+") + Math.abs(data.weight.lbsLost) : "—"}
                 </div>
-                <div className="text-[10px]" style={{ color: "#9b80b8" }}>lost total</div>
+                <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>lost total</div>
               </div>
             </div>
 
             {data.weight.pctComplete != null && (
               <div>
-                <div className="text-[10px] flex justify-between mb-1" style={{ color: "#9b80b8" }}>
+                <div className="text-[10px] flex justify-between mb-1" style={{ color: "var(--ink-muted)" }}>
                   <span>progress to goal</span>
                   <span>{data.weight.pctComplete}%</span>
                 </div>
@@ -263,7 +263,7 @@ export default function StatsPage() {
             )}
 
             {data.weight.weeklyTrend != null && (
-              <div className="text-xs text-center" style={{ color: "#9b80b8" }}>
+              <div className="text-xs text-center" style={{ color: "var(--ink-muted)" }}>
                 actual 14-day trend:{" "}
                 <strong style={{ color: data.weight.weeklyTrend <= 0 ? "#6bcb77" : "#e04040" }}>
                   {data.weight.weeklyTrend > 0 ? "+" : ""}{data.weight.weeklyTrend} {unit}/wk
@@ -274,11 +274,11 @@ export default function StatsPage() {
             {data.weight.daysToGoal != null && data.weight.projectedGoalDate && (
               <div className="text-center text-xs p-2" style={{ background: "#fff0f5", borderRadius: 4 }}>
                 at current deficit, goal in{" "}
-                <strong style={{ color: "#e84d98" }}>{data.weight.daysToGoal} days</strong>
+                <strong style={{ color: "var(--accent-pink)" }}>{data.weight.daysToGoal} days</strong>
                 <br />
-                <span style={{ color: "#b098c8" }}>~{formatDate(data.weight.projectedGoalDate)}</span>
+                <span style={{ color: "var(--ink-faint)" }}>~{formatDate(data.weight.projectedGoalDate)}</span>
                 {data.goal.targetDate && (
-                  <div className="mt-1" style={{ color: "#9b80b8" }}>
+                  <div className="mt-1" style={{ color: "var(--ink-muted)" }}>
                     deadline: {formatDate(data.goal.targetDate)}
                   </div>
                 )}
@@ -296,7 +296,7 @@ export default function StatsPage() {
             const targetPct = targetCal ? (targetCal / maxCal) * 100 : null;
             return (
               <div key={d.date} className="flex items-center gap-2 text-[10px]">
-                <span style={{ color: "#9b80b8", width: 56 }}>{formatDate(d.date).replace(/,.*/, "")}</span>
+                <span style={{ color: "var(--ink-muted)", width: 56 }}>{formatDate(d.date).replace(/,.*/, "")}</span>
                 <div className="flex-1 relative" style={{ height: 14, background: "#f0e5ff", borderRadius: 2 }}>
                   <div style={{
                     height: "100%",

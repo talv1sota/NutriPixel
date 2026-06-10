@@ -37,15 +37,15 @@ export default function MacroRing({ value, max, label, unit, color, trackColor =
             strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.5s ease, stroke-width 0.15s ease" }} />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-bold text-sm" style={{ color: over ? "#cc2222" : "#4a2d6b" }}>
+          <span className="font-bold text-sm" style={{ color: over ? "#cc2222" : "var(--ink)" }}>
             {Math.round(value)}
           </span>
-          <span className="text-[9px]" style={{ color: "#9b80b8" }}>{unit}</span>
+          <span className="text-[9px]" style={{ color: "var(--ink-muted)" }}>{unit}</span>
         </div>
       </div>
       <span className="text-xs font-bold" style={{ color: active ? color : "#5a3d7a", transition: "color 0.15s" }}>{label}</span>
       {hasGoal ? (
-        <span className="text-[10px]" style={{ color: "#b098c8" }}>/ {max}</span>
+        <span className="text-[10px]" style={{ color: "var(--ink-faint)" }}>/ {max}</span>
       ) : (
         <span className="text-[10px] italic" style={{ color: "#d4b8e8" }}>no goal</span>
       )}

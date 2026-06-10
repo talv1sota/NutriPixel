@@ -56,7 +56,7 @@ export default function InsightsPage() {
                 </div>
               )}
               {sec.title && (
-                <div className="pixel-label" style={{ fontSize: "7px", color: "#b098c8", marginBottom: 8, letterSpacing: 1.5 }}>
+                <div className="pixel-label" style={{ fontSize: "7px", color: "var(--ink-faint)", marginBottom: 8, letterSpacing: 1.5 }}>
                   {sec.title}
                 </div>
               )}

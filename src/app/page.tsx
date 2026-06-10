@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import Window from "@/components/Window";
 import MacroRing from "@/components/MacroRing";
 import ProgressBar from "@/components/ProgressBar";
 import { todayStr, calcMacros, formatDate, calcBMI, bmiCategory, calcBMR, calcTDEE, toLbs, toIn } from "@/lib/helpers";
+import { currentStageIndex, formatDuration, FASTING_STAGES } from "@/lib/fasting";
 
 interface Food {
   id: number; name: string; brand: string | null;
@@ -19,6 +21,9 @@ interface Exercise {
 }
 interface Mood {
   id: number; date: string; tags: string; notes: string | null;
+}
+interface FastingSession {
+  id: number; startTime: string; endTime: string | null; goalHours: number;
 }
 interface Goal {
   targetCalories: number | null; targetProtein: number | null;
@@ -44,16 +49,19 @@ export default function Dashboard() {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [latestWeight, setLatestWeight] = useState<number | null>(null);
   const [mood, setMood] = useState<Mood | null>(null);
+  const [fasting, setFasting] = useState<FastingSession | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [date, setDate] = useState(todayStr());
   const [expanded, setExpanded] = useState<MacroKey | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [lr, gr, er, wr, mr] = await Promise.all([
+    const [lr, gr, er, wr, mr, fr] = await Promise.all([
       fetch(`/api/logs?date=${date}`),
       fetch("/api/goals"),
       fetch(`/api/exercise?date=${date}`),
       fetch("/api/weight"),
       fetch(`/api/mood?date=${date}`),
+      fetch("/api/fasting"),
     ]);
     setLogs(await lr.json());
     setGoal(await gr.json());
@@ -61,9 +69,28 @@ export default function Dashboard() {
     const weights = await wr.json();
     if (weights.length > 0) setLatestWeight(weights[weights.length - 1].weight);
     setMood(await mr.json());
+    setFasting((await fr.json()).active);
   }, [date]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Tick once a second while a fast is running (banner is "now", not the
+  // selected log date).
+  useEffect(() => {
+    if (!fasting) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [fasting]);
+
+  const fastingView = (() => {
+    if (!fasting) return null;
+    const elapsedMs = now - new Date(fasting.startTime).getTime();
+    const goalMs = fasting.goalHours * 3_600_000;
+    const pct = Math.min(100, (elapsedMs / goalMs) * 100);
+    const reached = elapsedMs >= goalMs;
+    const stage = FASTING_STAGES[currentStageIndex(elapsedMs / 3_600_000)];
+    return { elapsedMs, pct, reached, stage };
+  })();
 
 
   const totals = logs.reduce((a, l) => {
@@ -121,6 +148,36 @@ export default function Dashboard() {
         <button onClick={() => changeDate(1)} className="btn-blue btn-sm">Next ▶</button>
       </div>
 
+      {/* Active fast banner — live, tap to open Fasting */}
+      {fastingView && (
+        <Link href="/fasting" style={{ textDecoration: "none", display: "block" }}>
+          <div className="window slidein" style={{ borderColor: fastingView.reached ? "#6bcb77" : fastingView.stage.color }}>
+            <div className="window-body" style={{ padding: 12 }}>
+              <div className="flex items-center gap-3">
+                <div style={{ fontSize: 26 }}>{fastingView.reached ? "🌟" : fastingView.stage.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="pixel-label" style={{ fontSize: "7px" }}>
+                      {fastingView.reached ? "Goal reached" : "Fasting"}
+                    </span>
+                    <span className="font-bold" style={{ fontSize: 16, color: "var(--ink)", fontVariantNumeric: "tabular-nums" }}>
+                      {formatDuration(fastingView.elapsedMs)}
+                    </span>
+                  </div>
+                  <div className="bar-track mt-1" style={{ height: 10 }}>
+                    <div className="bar-fill" style={{ width: `${fastingView.pct}%`, background: fastingView.reached ? "#6bcb77" : fastingView.stage.color }} />
+                  </div>
+                  <div className="text-xs mt-1 font-bold" style={{ color: fastingView.stage.color }}>
+                    {fastingView.stage.emoji} {fastingView.stage.title} · {fastingView.pct.toFixed(0)}% of {fasting!.goalHours}h
+                  </div>
+                </div>
+                <span style={{ color: "#c0a0d8", fontSize: 18 }}>›</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+      )}
+
       {/* BMI / BMR / TDEE */}
       {canCalcBody && (
         <div className="grid grid-cols-4 gap-2">
@@ -131,20 +188,20 @@ export default function Dashboard() {
           </div>
           <div className="stat-box">
             <div className="pixel-label mb-1" style={{ fontSize: "7px" }}>BMR</div>
-            <div className="text-lg font-bold" style={{ color: "#9b5de5" }}>{bmr}</div>
-            <div className="text-[10px]" style={{ color: "#b098c8" }}>kcal/day</div>
+            <div className="text-lg font-bold" style={{ color: "var(--accent-purple)" }}>{bmr}</div>
+            <div className="text-[10px]" style={{ color: "var(--ink-faint)" }}>kcal/day</div>
           </div>
           <div className="stat-box">
             <div className="pixel-label mb-1" style={{ fontSize: "7px" }}>TDEE</div>
             <div className="text-lg font-bold" style={{ color: "#5bb8e8" }}>{tdee}</div>
-            <div className="text-[10px]" style={{ color: "#b098c8" }}>kcal/day</div>
+            <div className="text-[10px]" style={{ color: "var(--ink-faint)" }}>kcal/day</div>
           </div>
           <div className="stat-box">
             <div className="pixel-label mb-1" style={{ fontSize: "7px" }}>Net Cal</div>
             <div className="text-lg font-bold" style={{ color: netCalories > (tdee || 2000) ? "#ff4444" : "#6bcb77" }}>
               {netCalories}
             </div>
-            <div className="text-[10px]" style={{ color: "#b098c8" }}>
+            <div className="text-[10px]" style={{ color: "var(--ink-faint)" }}>
               {tdee ? (netCalories < tdee ? `${tdee - netCalories} deficit` : `${netCalories - tdee} surplus`) : "kcal"}
             </div>
           </div>
@@ -180,7 +237,7 @@ export default function Dashboard() {
           })}
         </div>
         {totalBurned > 0 && (
-          <div className="text-xs text-center mt-2" style={{ color: "#b098c8" }}>
+          <div className="text-xs text-center mt-2" style={{ color: "var(--ink-faint)" }}>
             Eaten: {totals.calories} − Burned: {totalBurned} = Net: <strong style={{ color: "#6bcb77" }}>{netCalories}</strong> kcal
           </div>
         )}
@@ -191,7 +248,7 @@ export default function Dashboard() {
               <span className="pixel-label" style={{ fontSize: "8px", color: macroColors[expanded] }}>
                 {expanded} breakdown
               </span>
-              <span className="text-xs" style={{ color: "#b098c8" }}>
+              <span className="text-xs" style={{ color: "var(--ink-faint)" }}>
                 — total: {Math.round(totals[expanded])} {macroUnits[expanded]}
               </span>
             </div>
@@ -200,7 +257,7 @@ export default function Dashboard() {
               return (
                 <div key={i} className="flex items-center gap-3 py-1.5" style={{ borderBottom: "1px dashed #ede0f5" }}>
                   <span className="text-sm font-semibold flex-1">{item.name}</span>
-                  <span className="text-xs" style={{ color: "#b098c8" }}>{item.amount}g</span>
+                  <span className="text-xs" style={{ color: "var(--ink-faint)" }}>{item.amount}g</span>
                   <div style={{ width: 80, height: 8, background: "#ede0f5", borderRadius: 4, overflow: "hidden" }}>
                     <div style={{ width: `${pct}%`, height: "100%", background: macroColors[expanded], borderRadius: 4, transition: "width 0.3s ease" }} />
                   </div>
@@ -225,8 +282,8 @@ export default function Dashboard() {
         {totalBurned > 0 && (
           <div className="mt-3" style={{ borderTop: "1px dashed #ede0f5", paddingTop: 8 }}>
             <div className="flex justify-between text-xs font-bold">
-              <span style={{ color: "#e84d98" }}>🔥 Burned from exercise</span>
-              <span style={{ color: "#e84d98" }}>-{totalBurned} kcal</span>
+              <span style={{ color: "var(--accent-pink)" }}>🔥 Burned from exercise</span>
+              <span style={{ color: "var(--accent-pink)" }}>-{totalBurned} kcal</span>
             </div>
             <div className="flex justify-between text-xs font-bold mt-1">
               <span style={{ color: "#6bcb77" }}>Net calories</span>
@@ -246,7 +303,7 @@ export default function Dashboard() {
                 <span className="badge ml-2">{ex.duration} min</span>
               </div>
               <div className="flex items-center gap-3 text-xs font-bold">
-                <span style={{ color: "#e84d98" }}>-{ex.caloriesBurned} kcal</span>
+                <span style={{ color: "var(--accent-pink)" }}>-{ex.caloriesBurned} kcal</span>
                 <button onClick={() => handleDeleteExercise(ex.id)} className="delete-btn">×</button>
               </div>
             </div>
@@ -271,7 +328,7 @@ export default function Dashboard() {
                       {isRecipe ? log.food.name.replace(/ \(recipe\)$/, "") : log.food.name}
                     </span>
                     {log.food.brand && log.food.brand !== "Recipe" && log.food.brand !== "Generic" && (
-                      <span className="text-xs ml-2" style={{ color: "#9b80b8" }}>{log.food.brand}</span>
+                      <span className="text-xs ml-2" style={{ color: "var(--ink-muted)" }}>{log.food.brand}</span>
                     )}
                     <span className="badge ml-2">
                       {isRecipe
@@ -283,7 +340,7 @@ export default function Dashboard() {
                     <span style={{ color: "#6bcb77" }}>{m.calories}</span>
                     <span style={{ color: "#5bb8e8" }}>P{m.protein}</span>
                     <span style={{ color: "#dda520" }}>C{m.carbs}</span>
-                    <span style={{ color: "#e84d98" }}>F{m.fat}</span>
+                    <span style={{ color: "var(--accent-pink)" }}>F{m.fat}</span>
                     <button onClick={() => handleDelete(log.id)} className="delete-btn" title="Delete">×</button>
                   </div>
                 </div>
@@ -313,7 +370,7 @@ export default function Dashboard() {
             </div>
           )}
           {mood.notes && (
-            <p className="text-sm italic" style={{ color: "#7a5a9e", background: "#f5eeff", padding: 10, borderRadius: 8, border: "1px dashed #d4b8e8" }}>
+            <p className="text-sm italic" style={{ color: "var(--ink-soft)", background: "#f5eeff", padding: 10, borderRadius: 8, border: "1px dashed #d4b8e8" }}>
               &quot;{mood.notes}&quot;
             </p>
           )}

@@ -177,7 +177,7 @@ export default function RecipesPage() {
             <button onClick={importFromUrl} disabled={loading} className="btn-pink w-full py-3">
               {loading ? "✧ Parsing... ✧" : "✧ Import Recipe ✧"}
             </button>
-            <p className="text-xs text-center" style={{ color: "#9b80b8" }}>
+            <p className="text-xs text-center" style={{ color: "var(--ink-muted)" }}>
               Works with most recipe blogs (schema.org Recipe data)
             </p>
           </div>
@@ -270,7 +270,7 @@ export default function RecipesPage() {
 
       <Window title={`🍳 Recipe Book (${recipes.length})`}>
         {recipes.length === 0 ? (
-          <p className="text-center text-sm" style={{ color: "#9b80b8" }}>
+          <p className="text-center text-sm" style={{ color: "var(--ink-muted)" }}>
             No recipes yet. Paste a URL above to get started!
           </p>
         ) : (
@@ -278,7 +278,7 @@ export default function RecipesPage() {
             {recipes.map((r) => (
               <div key={r.id} className="list-row" style={{ alignItems: "flex-start", gap: 10 }}>
                 <button onClick={() => setOpen(r)} className="flex-1 text-left" style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                  <div className="font-semibold" style={{ color: "#4a2d6b" }}>{r.title}</div>
+                  <div className="font-semibold" style={{ color: "var(--ink)" }}>{r.title}</div>
                   <div className="flex gap-2 flex-wrap mt-1">
                     {r.servings && <span className="badge">{r.servings}</span>}
                     {r.totalTime && <span className="badge">⏱ {r.totalTime}</span>}
@@ -442,7 +442,7 @@ function RecipeModal({ recipe: initialRecipe, onClose, onUpdate }: { recipe: Rec
             <>
               <div className="flex items-start justify-between gap-2">
                 {recipe.description ? (
-                  <p className="text-sm italic flex-1" style={{ color: "#7a5a9e" }}>{recipe.description}</p>
+                  <p className="text-sm italic flex-1" style={{ color: "var(--ink-soft)" }}>{recipe.description}</p>
                 ) : <div className="flex-1" />}
                 <button onClick={() => setEditing(true)} className="btn-blue btn-sm" style={{ fontSize: 9, padding: "3px 8px", flexShrink: 0 }}>edit</button>
               </div>
@@ -471,7 +471,7 @@ function RecipeModal({ recipe: initialRecipe, onClose, onUpdate }: { recipe: Rec
                 <ul className="text-sm space-y-1">
                   {ings.map((i, idx) => (
                     <li key={idx} style={{ paddingLeft: 22, position: "relative" }}>
-                      <span style={{ position: "absolute", left: 0, color: "#e84d98" }}>✦</span>{i}
+                      <span style={{ position: "absolute", left: 0, color: "var(--accent-pink)" }}>✦</span>{i}
                     </li>
                   ))}
                 </ul>
@@ -484,7 +484,7 @@ function RecipeModal({ recipe: initialRecipe, onClose, onUpdate }: { recipe: Rec
                     <li key={idx} style={{ paddingLeft: 22, position: "relative" }}>
                       <span style={{
                         position: "absolute", left: 0, top: 0,
-                        background: "#9b5de5", color: "white",
+                        background: "var(--accent-purple)", color: "white",
                         borderRadius: "50%", width: 16, height: 16,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         fontSize: 10, fontWeight: 700,
@@ -497,7 +497,7 @@ function RecipeModal({ recipe: initialRecipe, onClose, onUpdate }: { recipe: Rec
 
               {recipe.sourceUrl && (
                 <div className="text-xs text-center">
-                  <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" style={{ color: "#9b5de5" }}>
+                  <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" style={{ color: "var(--accent-purple)" }}>
                     source ↗
                   </a>
                 </div>

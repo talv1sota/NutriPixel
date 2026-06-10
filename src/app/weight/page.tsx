@@ -99,19 +99,19 @@ export default function WeightPage() {
         <div className="stat-box">
           <div className="pixel-label mb-1" style={{ fontSize: "7px" }}>Current</div>
           <div className="text-xl font-bold" style={{ color: "#5bb8e8" }}>{current ?? "—"}</div>
-          <div className="text-[10px]" style={{ color: "#b098c8" }}>{unit}</div>
+          <div className="text-[10px]" style={{ color: "var(--ink-faint)" }}>{unit}</div>
         </div>
         <div className="stat-box">
           <div className="pixel-label mb-1" style={{ fontSize: "7px" }}>Goal</div>
-          <div className="text-xl font-bold" style={{ color: "#e84d98" }}>{target ?? "—"}</div>
-          <div className="text-[10px]" style={{ color: "#b098c8" }}>{unit}</div>
+          <div className="text-xl font-bold" style={{ color: "var(--accent-pink)" }}>{target ?? "—"}</div>
+          <div className="text-[10px]" style={{ color: "var(--ink-faint)" }}>{unit}</div>
         </div>
         <div className="stat-box">
           <div className="pixel-label mb-1" style={{ fontSize: "7px" }}>To Go</div>
           <div className="text-xl font-bold" style={{ color: diff && diff > 0 ? "#dda520" : "#6bcb77" }}>
             {diff !== null ? `${diff > 0 ? "-" : "+"}${Math.abs(diff).toFixed(1)}` : "—"}
           </div>
-          <div className="text-[10px]" style={{ color: "#b098c8" }}>{unit}</div>
+          <div className="text-[10px]" style={{ color: "var(--ink-faint)" }}>{unit}</div>
         </div>
       </div>
 
@@ -141,7 +141,7 @@ export default function WeightPage() {
                 return (
                   <g key={p}>
                     <line x1={0} y1={y} x2={cW} y2={y} stroke="#ede0f5" strokeWidth={1} />
-                    <text x={-5} y={y + 4} textAnchor="end" fill="#b098c8" fontSize={10} fontFamily="Quicksand">
+                    <text x={-5} y={y + 4} textAnchor="end" fill="var(--ink-faint)" fontSize={10} fontFamily="Quicksand">
                       {(minW + p * (maxW - minW)).toFixed(0)}
                     </text>
                   </g>
@@ -150,7 +150,7 @@ export default function WeightPage() {
               {target && (
                 <line x1={0} y1={cH - ((target - minW) / (maxW - minW)) * cH}
                   x2={cW} y2={cH - ((target - minW) / (maxW - minW)) * cH}
-                  stroke="#e84d98" strokeDasharray="6 4" strokeWidth={1.5} />
+                  stroke="var(--accent-pink)" strokeDasharray="6 4" strokeWidth={1.5} />
               )}
               <path d={area} fill="url(#wg)" opacity={0.4} />
               <path d={line} fill="none" stroke="#5bb8e8" strokeWidth={3} strokeLinejoin="round" />
@@ -178,7 +178,7 @@ export default function WeightPage() {
           <div className="max-h-60 overflow-y-auto">
             {[...entries].reverse().map(entry => (
               <div key={entry.id} className="list-row">
-                <span style={{ color: "#9b80b8" }}>{formatDate(entry.date)}</span>
+                <span style={{ color: "var(--ink-muted)" }}>{formatDate(entry.date)}</span>
                 <div className="flex items-center gap-3">
                   <span className="font-bold">{entry.weight} {unit}</span>
                   <button onClick={() => handleDelete(entry.id)} className="delete-btn">×</button>

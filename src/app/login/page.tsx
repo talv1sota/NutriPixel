@@ -79,7 +79,7 @@ export default function LoginPage() {
 
             <p className="text-xs text-center" style={{ color: "#8b6a9e" }}>
               Don&apos;t have an account?{" "}
-              <Link href="/signup" className="font-bold" style={{ color: "#9b5de5" }}>
+              <Link href="/signup" className="font-bold" style={{ color: "var(--accent-purple)" }}>
                 Sign Up
               </Link>
             </p>

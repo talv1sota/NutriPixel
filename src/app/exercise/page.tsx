@@ -228,7 +228,7 @@ export default function ExercisePage() {
         </div>
       )}
 
-      <div className="text-xs text-center" style={{ color: "#9b80b8" }}>
+      <div className="text-xs text-center" style={{ color: "var(--ink-muted)" }}>
         Calorie burn calculated for <strong>{userWeight} {weightUnit}</strong> body weight
       </div>
 
@@ -299,7 +299,7 @@ export default function ExercisePage() {
                   style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
                 >
                   <div className="text-sm font-semibold truncate">{s.name}</div>
-                  <div className="text-[10px]" style={{ color: "#9b80b8" }}>
+                  <div className="text-[10px]" style={{ color: "var(--ink-muted)" }}>
                     {s.defaultDuration} min · {Math.round(s.defaultCalories)} kcal
                     {s.lastUsedDate && ` · last ${s.lastUsedDate}`}
                   </div>
@@ -320,7 +320,7 @@ export default function ExercisePage() {
                 <span className="badge ml-2">{ex.duration} min</span>
               </div>
               <div className="flex items-center gap-3 text-xs font-bold">
-                <span style={{ color: "#e84d98" }}>-{ex.caloriesBurned} kcal</span>
+                <span style={{ color: "var(--accent-pink)" }}>-{ex.caloriesBurned} kcal</span>
                 <button onClick={() => handleDelete(ex.id)} className="delete-btn">×</button>
               </div>
             </div>
@@ -341,20 +341,20 @@ export default function ExercisePage() {
           view={
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span style={{ color: "#9b80b8" }}>Default duration</span>
+                <span style={{ color: "var(--ink-muted)" }}>Default duration</span>
                 <strong>{openSaved.defaultDuration} min</strong>
               </div>
               <div className="flex justify-between">
-                <span style={{ color: "#9b80b8" }}>Default calories</span>
+                <span style={{ color: "var(--ink-muted)" }}>Default calories</span>
                 <strong>{Math.round(openSaved.defaultCalories)} kcal</strong>
               </div>
               {openSaved.lastUsedDate && (
                 <div className="flex justify-between">
-                  <span style={{ color: "#9b80b8" }}>Last used</span>
+                  <span style={{ color: "var(--ink-muted)" }}>Last used</span>
                   <strong>{openSaved.lastUsedDate}</strong>
                 </div>
               )}
-              <div className="flex justify-between text-xs pt-1" style={{ color: "#b098c8" }}>
+              <div className="flex justify-between text-xs pt-1" style={{ color: "var(--ink-faint)" }}>
                 <span>Log uses date:</span>
                 <span>{date}</span>
               </div>
