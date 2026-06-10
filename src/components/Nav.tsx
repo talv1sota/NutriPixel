@@ -33,7 +33,7 @@ function NavGlyph({ href }: { href: string }) {
     case "/log": return (<svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></svg>);
     case "/exercise": return (<svg {...p}><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12" /></svg>);
     case "/fasting": return (<svg {...p}><path d="M5 3h14M5 21h14" /><path d="M7 3v3l5 6 5-6V3" /><path d="M7 21v-3l5-6 5 6v3" /></svg>);
-    case "/weight": return (<svg {...p}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M12 8a4 4 0 0 0-3.2 6.4" /><path d="M12 8v2" /></svg>);
+    case "/weight": return (<svg {...p}><path d="M12 3v18" /><path d="M8 21h8" /><path d="M5 6.5h14" /><path d="M5 6.5l-2.5 5.5a3 3 0 0 0 5 0z" /><path d="M19 6.5l-2.5 5.5a3 3 0 0 0 5 0z" /></svg>);
     case "/stats": return (<svg {...p}><path d="M5 21V11M10 21V6M15 21v-9M20 21V9" /><path d="M3 21h18" /></svg>);
     case "/recipes": return (<svg {...p}><path d="M12 6C10 4.5 7 4 4 4v15c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2z" /><path d="M12 6v15" /></svg>);
     case "/mood": return (<svg {...p}><circle cx="12" cy="12" r="9" /><path d="M8.5 14a4 4 0 0 0 7 0" /><path d="M9 9.5h.01M15 9.5h.01" /></svg>);
