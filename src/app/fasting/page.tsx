@@ -30,6 +30,8 @@ export default function FastingPage() {
   const [loaded, setLoaded] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [flash, setFlash] = useState("");
+  // Pick one motivation line per page load and keep it for the whole session.
+  const [motivationIdx] = useState(() => Math.floor(Math.random() * FASTING_MOTIVATION.length));
 
   // Start form
   const [goalKey, setGoalKey] = useState("16:8");
@@ -120,7 +122,7 @@ export default function FastingPage() {
   const nextStage = FASTING_STAGES[stageIdx + 1] ?? null;
   const msToNextStage = nextStage ? (nextStage.hour * 3_600_000) - elapsedMs : 0;
 
-  const motivation = FASTING_MOTIVATION[Math.floor(elapsedMs / 1000) % FASTING_MOTIVATION.length];
+  const motivation = FASTING_MOTIVATION[motivationIdx];
 
   // ---- Ring geometry ----
   const size = 220;
@@ -159,6 +161,10 @@ export default function FastingPage() {
   }
 
   const fmtClock = (ms: number) => new Date(ms).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  // For multi-day fasts a bare time ("10:00") is ambiguous — show the day too
+  // when it isn't today.
+  const isSameDayAsNow = (ms: number) => new Date(ms).toDateString() === new Date(now).toDateString();
+  const fmtDateShort = (ms: number) => new Date(ms).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   const fmtDay = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
@@ -208,10 +214,12 @@ export default function FastingPage() {
                 <div className="stat-box">
                   <div className="pixel-label mb-1" style={{ fontSize: "7px" }}>Started</div>
                   <div className="font-bold" style={{ fontSize: 15, color: "var(--accent-purple)" }}>{fmtClock(startMs)}</div>
+                  {!isSameDayAsNow(startMs) && <div className="text-[9px] mt-0.5" style={{ color: "var(--ink-faint)" }}>{fmtDateShort(startMs)}</div>}
                 </div>
                 <div className="stat-box">
                   <div className="pixel-label mb-1" style={{ fontSize: "7px" }}>Goal At</div>
                   <div className="font-bold" style={{ fontSize: 15, color: "#5bb8e8" }}>{fmtClock(goalEndMs)}</div>
+                  {!isSameDayAsNow(goalEndMs) && <div className="text-[9px] mt-0.5" style={{ color: "var(--ink-faint)" }}>{fmtDateShort(goalEndMs)}</div>}
                 </div>
                 <div className="stat-box">
                   <div className="pixel-label mb-1" style={{ fontSize: "7px" }}>{reachedGoal ? "Over Goal" : "Remaining"}</div>
@@ -289,11 +297,11 @@ export default function FastingPage() {
                       </div>
                       <div className="pixel-label" style={{ fontSize: "6px", color: s.color }}>{s.hour}h</div>
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
                       <div className="font-bold text-sm" style={{ color: isCurrent ? s.color : "#6a5589" }}>
                         {s.title}{isCurrent && <span className="badge ml-2" style={{ color: s.color }}>now</span>}
                       </div>
-                      {isCurrent && <p className="text-xs mt-0.5" style={{ color: "#8a73a8", lineHeight: 1.4 }}>{s.body}</p>}
+                      {done && <span className="text-xs" style={{ color: "var(--ink-faint)" }}>done</span>}
                     </div>
                   </div>
                 );
