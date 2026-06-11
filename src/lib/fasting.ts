@@ -24,6 +24,7 @@ export const FASTING_PROTOCOLS: FastingProtocol[] = [
   { key: "36h",   label: "36h",   name: "Monk fast",   goalHours: 36, blurb: "Extended fast. Deep autophagy & repair." },
   { key: "48h",   label: "48h",   name: "2-day",       goalHours: 48, blurb: "Immune & stem-cell renewal territory." },
   { key: "72h",   label: "72h",   name: "3-day",       goalHours: 72, blurb: "Advanced. Profound cellular regeneration." },
+  { key: "100h",  label: "100h",  name: "4-day+",      goalHours: 100, blurb: "Hardcore. Prolonged autophagy — refeed with care." },
 ];
 
 export interface FastingStage {
@@ -62,6 +63,8 @@ export const FASTING_STAGES: FastingStage[] = [
     body: "Stem-cell production and immune-cell regeneration rise. Inflammation is low and insulin sensitivity keeps improving." },
   { hour: 72, emoji: "🌟", title: "Profound regeneration", color: "#6bcb77",
     body: "Sustained deep autophagy and immune reset. Your body is rebuilding from the cellular level up. Advanced territory — refeed mindfully." },
+  { hour: 96, emoji: "🏔️", title: "Prolonged fast",       color: "#4fb39a",
+    body: "Day four: ketones fuel your brain, autophagy and growth hormone stay elevated to spare muscle, and you're deep in fat-adapted repair. This is serious territory — stay hydrated, watch your electrolytes, and break the fast gently with light food." },
 ];
 
 // Rotating motivation. Index by elapsed seconds so it changes over the fast
