@@ -31,6 +31,7 @@ const mealOptions = [
   { v: "lunch", l: "🌸 Lunch" },
   { v: "dinner", l: "🌙 Dinner" },
   { v: "snack", l: "🍬 Snack" },
+  { v: "drinks", l: "🥤 Drinks" },
   { v: "dessert", l: "🧁 Dessert" },
   { v: "supplement", l: "💊 Supplement" },
 ];

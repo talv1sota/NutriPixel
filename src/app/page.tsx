@@ -134,8 +134,8 @@ export default function Dashboard() {
   const tdee = bmr ? calcTDEE(bmr, goal!.activityLevel) : null;
   const bmiInfo = bmi ? bmiCategory(bmi) : null;
 
-  const meals = ["breakfast", "lunch", "dinner", "snack", "dessert", "supplement"];
-  const mealIcons: Record<string, string> = { breakfast: "🌅", lunch: "🌸", dinner: "🌙", snack: "🍬", dessert: "🧁", supplement: "💊" };
+  const meals = ["breakfast", "lunch", "dinner", "snack", "drinks", "dessert", "supplement"];
+  const mealIcons: Record<string, string> = { breakfast: "🌅", lunch: "🌸", dinner: "🌙", snack: "🍬", drinks: "🥤", dessert: "🧁", supplement: "💊" };
 
   return (
     <div className="space-y-5 pt-3">

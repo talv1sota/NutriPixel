@@ -10,7 +10,7 @@ export interface PoolItem {
 export interface Chosen { item: PoolItem; amount: number; }
 export interface MacroT { p?: number; c?: number; f?: number; }
 
-export const MEALS = ["breakfast", "lunch", "dinner", "snack", "dessert"];
+export const MEALS = ["breakfast", "lunch", "dinner", "snack", "drinks", "dessert"];
 
 // ---- Classification -------------------------------------------------------
 // The meal a food was *logged* at isn't its category (wine logged with dinner
@@ -46,8 +46,8 @@ export function classify(name: string, brand: string | null): Category {
 // logged at.
 function placeMeal(category: Category, modeMeal: string): string {
   if (category === "dessert") return "dessert";
-  if (category === "drink") return modeMeal === "breakfast" || modeMeal === "snack" ? modeMeal : "snack";
-  if (modeMeal === "dessert" || modeMeal === "supplement") return "snack"; // a real food mis-bucketed
+  if (category === "drink") return "drinks";
+  if (modeMeal === "dessert" || modeMeal === "supplement" || modeMeal === "drinks") return "snack"; // a real food mis-bucketed
   return modeMeal;
 }
 

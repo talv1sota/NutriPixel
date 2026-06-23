@@ -10,7 +10,7 @@ interface Goal {
   activityLevel: string; unit: string; targetCalories: number | null;
 }
 
-const MEAL_ICON: Record<string, string> = { breakfast: "🌅", lunch: "🌸", dinner: "🌙", snack: "🍬", dessert: "🧁" };
+const MEAL_ICON: Record<string, string> = { breakfast: "🌅", lunch: "🌸", dinner: "🌙", snack: "🍬", drinks: "🥤", dessert: "🧁" };
 const PRESETS = [600, 800, 1000, 1200, 1500, 1800];
 
 export default function DaysPage() {
