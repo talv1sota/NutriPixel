@@ -184,17 +184,18 @@ export default function DaysPage() {
             const rows = day.filter((ci) => ci.item.meal === m);
             const mc = Math.round(rows.reduce((s, ci) => s + macrosOf(ci.item, ci.amount).cal, 0));
             return (
-              <div key={m} className="mb-2">
-                <div className="pixel-label" style={{ fontSize: "7px", marginBottom: 4 }}>
-                  {MEAL_ICON[m]} {m} — {mc} kcal
+              <div key={m} style={{ marginBottom: 10 }}>
+                {/* Meal header bar */}
+                <div className="flex items-center justify-between" style={{ background: "var(--track)", borderRadius: 6, padding: "5px 10px", marginBottom: 2 }}>
+                  <span className="pixel-label" style={{ fontSize: "8px" }}>{MEAL_ICON[m]} {m}</span>
+                  <span className="text-xs font-bold" style={{ color: "var(--ink-muted)" }}>{mc} kcal</span>
                 </div>
+                {/* Items: name · amount · calories */}
                 {rows.map((ci, i) => (
-                  <div key={i} className="list-row">
-                    <div>
-                      <span className="font-semibold text-sm">{ci.item.name}</span>
-                      <span className="badge ml-2">{fmtAmount(ci)}</span>
-                    </div>
-                    <span className="text-xs font-bold" style={{ color: "#6bcb77" }}>{Math.round(macrosOf(ci.item, ci.amount).cal)}</span>
+                  <div key={i} className="flex items-center gap-2" style={{ padding: "5px 10px", borderBottom: "1px dashed var(--win-border-soft)" }}>
+                    <span className="text-sm font-semibold flex-1" style={{ minWidth: 0 }}>{ci.item.name}</span>
+                    <span className="text-xs" style={{ color: "var(--ink-faint)", whiteSpace: "nowrap" }}>{fmtAmount(ci)}</span>
+                    <span className="text-xs font-bold" style={{ color: "#6bcb77", minWidth: 40, textAlign: "right" }}>{Math.round(macrosOf(ci.item, ci.amount).cal)}</span>
                   </div>
                 ))}
               </div>

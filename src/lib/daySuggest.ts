@@ -2,7 +2,7 @@
 // it can be unit-tested against real data.
 
 export interface Per100 { calories: number; protein: number; carbs: number; fat: number; fiber: number; sugar: number; }
-export type Category = "alcohol" | "drink" | "dessert" | "food";
+export type Category = "alcohol" | "drink" | "dessert" | "condiment" | "food";
 export interface PoolItem {
   name: string; brand: string | null; foodId: number | null; meal: string; category: Category;
   amount: number; unit: string; per100: Per100; freq: number; cals: number;
@@ -22,14 +22,23 @@ const NON_ALC = /\b(ginger ale|root beer|non[- ]?alcoholic|mocktail|virgin)\b/;
 const ALCOHOL = /\b(wine|rose|prosecco|champagne|merlot|cabernet|chardonnay|sauvignon|pinot|riesling|moscato|shiraz|malbec|sangria|beer|ipa|lager|stout|pilsner|pale ale|brown ale|cider|hard seltzer|white claw|truly|vodka|whiskey|whisky|bourbon|scotch|tequila|mezcal|rum|gin|brandy|cognac|martini|margarita|mojito|negroni|aperol|spritz|mimosa|cocktail|liqueur|kahlua|baileys|schnapps|rakija|sake|soju|amaretto|vermouth|absinthe)\b/;
 const DESSERT = /\b(ice cream|gelato|sorbet|sherbet|frozen yogurt|froyo|cookie|brownie|cake|cheesecake|cupcake|pie|tart|donut|doughnut|candy|chocolate bar|praline|truffle|twizzler|gummy|gummies|marshmallow|fudge|toffee|macaron|macaroon|pudding|custard|tiramisu|milkshake|sundae|popsicle|wafer|biscotti|baklava|cannoli|eclair|mousse|skittles|m&m)\b/;
 const DRINK = /\b(coffee|espresso|latte|cappuccino|macchiato|mocha|americano|cold brew|tea|chai|matcha|yerba|guayaki|juice|smoothie|soda|cola|coke|pepsi|sprite|fanta|lemonade|limeade|kombucha|seltzer|sparkling water|tonic|gatorade|powerade|energy drink|red bull|monster|milk|horchata|ginger ale|root beer|punch|protein shake|shake)\b/;
+// Accompaniments that shouldn't stand alone as an item in a day (kept narrow so
+// real foods like peanut butter, cream cheese, bell pepper aren't caught).
+const CONDIMENT = /\b(ketchup|mustard|mayo|mayonnaise|dressing|vinaigrette|bouillon|broth|stock|seasoning|syrup|relish|gravy|hot sauce|soy sauce|sriracha|tabasco|aioli|sour cream|margarine|cooking spray|honey)\b/;
 
 export function classify(name: string, brand: string | null): Category {
-  // Strip accents so e.g. "Rosé"/"Kahlúa" match (a trailing accented letter
-  // otherwise breaks the \b word boundary).
-  const s = `${name} ${brand ?? ""}`.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  // Strip accents so "Rosé"/"Kahlúa" match (a trailing accented letter breaks
+  // the \b boundary), and drop parenthetical descriptors so a word inside them
+  // doesn't drive the category (e.g. "Ricotta (whole milk)" isn't a drink,
+  // "Crab appetizer (crab cake)" isn't a dessert).
+  const s = `${name} ${brand ?? ""}`
+    .toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\([^)]*\)/g, " ");
   if (!NON_ALC.test(s) && ALCOHOL.test(s)) return "alcohol";
   if (DESSERT.test(s)) return "dessert";
   if (DRINK.test(s)) return "drink";
+  if (CONDIMENT.test(s)) return "condiment";
+  // Plain butter is a condiment; peanut/almond/etc. butter is a real food.
+  if (/\bbutter\b/.test(s) && !/\b(peanut|almond|cashew|hazelnut|nut|apple|cookie|sun|seed|shea|body) butter\b/.test(s)) return "condiment";
   return "food";
 }
 
@@ -121,7 +130,8 @@ function weightedPick(cands: PoolItem[]): PoolItem | null {
 // meal, scale the last item to fit, and keep the attempt closest to target
 // (plus macro targets, if set). Alcohol is never planned into a day.
 export function generate(poolIn: PoolItem[], mealDist: Record<string, number>, T: number, macroT: MacroT | null): Chosen[] | null {
-  const pool = poolIn.filter((p) => p.category !== "alcohol");
+  // Alcohol and bare condiments are never planned into a day.
+  const pool = poolIn.filter((p) => p.category !== "alcohol" && p.category !== "condiment");
   const byMeal: Record<string, PoolItem[]> = {};
   for (const m of MEALS) byMeal[m] = pool.filter((p) => p.meal === m);
   const active = MEALS.filter((m) => byMeal[m].length);
@@ -138,11 +148,15 @@ export function generate(poolIn: PoolItem[], mealDist: Record<string, number>, T
     for (const m of active) {
       const b = budget[m];
       if (b < 40) continue;
-      const cands = byMeal[m].filter((p) => p.cals <= b * 1.8 + 60);
+      // Prefer items that are a meaningful share of the meal (so a dinner isn't
+      // built from 12-cal garnishes); relax if that leaves too few choices.
+      const minCal = Math.max(15, b * 0.12);
+      let cands = byMeal[m].filter((p) => p.cals <= b * 1.8 + 60 && p.cals >= minCal);
+      if (cands.length < 2) cands = byMeal[m].filter((p) => p.cals <= b * 1.8 + 60);
       if (!cands.length) continue;
       const used = new Set<string>();
       let spent = 0, guard = 0;
-      while (spent < b * 0.8 && guard < 4) {
+      while (spent < b * 0.8 && guard < 3) { // at most ~3 items per meal
         guard++;
         const c = weightedPick(cands.filter((p) => !used.has(`${p.name}|${p.brand}`))); // no repeats within a meal
         if (!c) break;
