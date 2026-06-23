@@ -18,6 +18,7 @@ const links = [
   { href: "/recipes", label: "Recipes", icon: "📖" },
   { href: "/mood", label: "Mood", icon: "💭" },
   { href: "/goals", label: "Goals", icon: "⭐" },
+  { href: "/days", label: "Days", icon: "📅" },
   { href: "/insights", label: "Insights", icon: "🧠" },
 ];
 
@@ -38,6 +39,7 @@ function NavGlyph({ href }: { href: string }) {
     case "/recipes": return (<svg {...p}><path d="M12 6C10 4.5 7 4 4 4v15c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2z" /><path d="M12 6v15" /></svg>);
     case "/mood": return (<svg {...p}><circle cx="12" cy="12" r="9" /><path d="M8.5 14a4 4 0 0 0 7 0" /><path d="M9 9.5h.01M15 9.5h.01" /></svg>);
     case "/goals": return (<svg {...p}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" /></svg>);
+    case "/days": return (<svg {...p}><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4" /></svg>);
     case "/insights": return (<svg {...p}><path d="M9 18h6" /><path d="M10 21h4" /><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.4 1 2.5h6c0-1.1.3-1.8 1-2.5A6 6 0 0 0 12 3z" /></svg>);
     default: return null;
   }
